@@ -5,6 +5,8 @@ existing tooling ecosystem. It does not execute technically and never reimplemen
 AgentDesk — it is a process conductor with explicit approval gates.
 
 > **Status:** full lifecycle implemented (`idea` → `done`). Python 3.12+, stdlib-only.
+> **Local / private-first:** intended for a private repository (backup & continuity); not published
+> and not publicly released.
 
 ## Charter
 
@@ -88,3 +90,8 @@ python -m unittest discover -s tests -t .
 The suite includes a cross-restart persistence proof (two separate subprocesses) and a static
 no-automation guard that fails if the runtime references process spawning, networking, the GitHub
 API, or VCS/release/install automation.
+
+## Continuous integration
+
+A GitHub Actions workflow (`.github/workflows/ci.yml`) runs the unit tests and the no-automation
+guard on Python 3.12, with no external dependencies and no pytest.
