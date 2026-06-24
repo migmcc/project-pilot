@@ -23,6 +23,12 @@ def _brief_line(brief: dict | None) -> str:
     return f"Brief: {brief['brief_path']} imported from {source}"
 
 
+def _setup_advice_line(setup_advice: dict | None) -> str:
+    if not setup_advice:
+        return "Setup advice: not prepared"
+    return f"Setup advice: prepared at {setup_advice['prepared_at']}"
+
+
 def _active_gate(state) -> str:
     if state.current_phase != Phase.VALIDATION:
         return gate_for_next(state.current_phase)
@@ -64,6 +70,7 @@ def run_status(args) -> int:
     print(f"Next phase: {upcoming.value if upcoming else '(none — final phase)'}")
     print(_decision_line(state.decision))
     print(_brief_line(state.brief))
+    print(_setup_advice_line(state.setup_advice))
     print(f"Active gate: {_active_gate(state)}")
     print(f"Next action: {_next_action(state)}")
     return 0

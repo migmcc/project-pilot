@@ -8,6 +8,7 @@ from .commands.advance_cmd import run_advance
 from .commands.brief_cmd import run_brief_import
 from .commands.decision_cmd import run_decision_set
 from .commands.init_cmd import run_init
+from .commands.setup_advice_cmd import run_advise_setup
 from .commands.status_cmd import run_status
 from .commands.validate_cmd import run_validate
 from .state import Clock, utc_now_iso
@@ -75,6 +76,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--dir", default=".", help="Project directory (default: current)."
     )
 
+    p_advise_setup = subparsers.add_parser(
+        "advise-setup", help="Prepare deterministic manual setup advice."
+    )
+    p_advise_setup.add_argument(
+        "--dir", default=".", help="Project directory (default: current)."
+    )
+
     return parser
 
 
@@ -93,5 +101,7 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
         return run_advance(args, clock=clock)
     if args.command == "brief" and args.brief_command == "import":
         return run_brief_import(args, clock=clock)
+    if args.command == "advise-setup":
+        return run_advise_setup(args, clock=clock)
     parser.error(f"unknown command: {args.command!r}")  # pragma: no cover
     return 2  # pragma: no cover

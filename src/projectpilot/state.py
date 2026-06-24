@@ -52,6 +52,7 @@ class ProjectState:
     current_phase: Phase = Phase.IDEA
     decision: dict[str, Any] | None = None
     brief: dict[str, Any] | None = None
+    setup_advice: dict[str, Any] | None = None
     history: list[dict[str, Any]] = field(default_factory=list)
     schema_version: int = SCHEMA_VERSION
 
@@ -68,6 +69,7 @@ class ProjectState:
             "current_phase": self.current_phase.value,
             "decision": self.decision,
             "brief": self.brief,
+            "setup_advice": self.setup_advice,
             "history": self.history,
             "updated_at": self.updated_at,
         }
@@ -84,6 +86,7 @@ class ProjectState:
             current_phase=Phase(data["current_phase"]),
             decision=data.get("decision"),
             brief=data.get("brief"),
+            setup_advice=data.get("setup_advice"),
             history=list(data.get("history", [])),
             schema_version=data.get("schema_version", SCHEMA_VERSION),
         )
