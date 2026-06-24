@@ -16,6 +16,13 @@ def _decision_line(decision: dict | None) -> str:
     return f"Decision: {decision['decision']} (source: {decision.get('source', 'unknown')}){suffix}"
 
 
+def _brief_line(brief: dict | None) -> str:
+    if not brief:
+        return "Brief: not imported"
+    source = brief.get("source_path", "unknown source")
+    return f"Brief: {brief['brief_path']} imported from {source}"
+
+
 def _active_gate(state) -> str:
     if state.current_phase != Phase.VALIDATION:
         return gate_for_next(state.current_phase)
@@ -56,6 +63,7 @@ def run_status(args) -> int:
     print(f"Current phase: {state.current_phase.value}")
     print(f"Next phase: {upcoming.value if upcoming else '(none — final phase)'}")
     print(_decision_line(state.decision))
+    print(_brief_line(state.brief))
     print(f"Active gate: {_active_gate(state)}")
     print(f"Next action: {_next_action(state)}")
     return 0

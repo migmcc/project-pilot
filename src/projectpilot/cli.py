@@ -5,6 +5,7 @@ import argparse
 from typing import Sequence
 
 from .commands.advance_cmd import run_advance
+from .commands.brief_cmd import run_brief_import
 from .commands.decision_cmd import run_decision_set
 from .commands.init_cmd import run_init
 from .commands.status_cmd import run_status
@@ -59,6 +60,21 @@ def build_parser() -> argparse.ArgumentParser:
     p_advance.add_argument("target", choices=("brief",))
     p_advance.add_argument("--dir", default=".", help="Project directory (default: current).")
 
+    p_brief = subparsers.add_parser(
+        "brief", help="Import an externally produced Project Brief."
+    )
+    brief_subparsers = p_brief.add_subparsers(dest="brief_command", required=True)
+    p_brief_import = brief_subparsers.add_parser(
+        "import", help="Copy an existing brief into the project."
+    )
+    p_brief_import.add_argument("path", help="Path to the brief produced outside ProjectPilot.")
+    p_brief_import.add_argument(
+        "--force", action="store_true", help="Replace an existing PROJECT_BRIEF.md."
+    )
+    p_brief_import.add_argument(
+        "--dir", default=".", help="Project directory (default: current)."
+    )
+
     return parser
 
 
@@ -75,5 +91,7 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
         return run_decision_set(args, clock=clock)
     if args.command == "advance":
         return run_advance(args, clock=clock)
+    if args.command == "brief" and args.brief_command == "import":
+        return run_brief_import(args, clock=clock)
     parser.error(f"unknown command: {args.command!r}")  # pragma: no cover
     return 2  # pragma: no cover
