@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# ProjectPilot state created in sample/scratch project dirs
+.project-pilot/
+
+# OS / editor
+.DS_Store
+Thumbs.db
