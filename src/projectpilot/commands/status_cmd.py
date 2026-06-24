@@ -48,6 +48,12 @@ def _execution_approval_line(execution_approval: dict | None) -> str:
     )
 
 
+def _final_validation_line(final_validation: dict | None) -> str:
+    if not final_validation:
+        return "Final validation: not prepared"
+    return f"Final validation: prepared at {final_validation['prepared_at']}"
+
+
 def _active_gate(state) -> str:
     if state.current_phase != Phase.VALIDATION:
         return gate_for_next(state.current_phase)
@@ -92,6 +98,7 @@ def run_status(args) -> int:
     print(_setup_advice_line(state.setup_advice))
     print(_ateam_check_line(state.ateam_check))
     print(_execution_approval_line(state.execution_approval))
+    print(_final_validation_line(state.final_validation))
     print(f"Active gate: {_active_gate(state)}")
     print(f"Next action: {_next_action(state)}")
     return 0

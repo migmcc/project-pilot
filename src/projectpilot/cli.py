@@ -15,6 +15,7 @@ from .commands.brief_cmd import run_brief_import
 from .commands.check_ateam_cmd import run_check_ateam
 from .commands.decision_cmd import run_decision_set
 from .commands.execution_cmd import run_execution_approve
+from .commands.final_validation_cmd import run_final_validation_prepare
 from .commands.init_cmd import run_init
 from .commands.setup_advice_cmd import run_advise_setup
 from .commands.status_cmd import run_status
@@ -117,6 +118,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--dir", default=".", help="Project directory (default: current)."
     )
 
+    p_final_validation = subparsers.add_parser(
+        "final-validation", help="Manage the final-validation gate."
+    )
+    final_validation_subparsers = p_final_validation.add_subparsers(
+        dest="final_validation_command", required=True
+    )
+    p_final_validation_prepare = final_validation_subparsers.add_parser(
+        "prepare", help="Prepare the manual final-validation checklist."
+    )
+    p_final_validation_prepare.add_argument(
+        "--dir", default=".", help="Project directory (default: current)."
+    )
+
     return parser
 
 
@@ -141,5 +155,7 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
         return run_check_ateam(args, clock=clock)
     if args.command == "execution" and args.execution_command == "approve":
         return run_execution_approve(args, clock=clock)
+    if args.command == "final-validation" and args.final_validation_command == "prepare":
+        return run_final_validation_prepare(args, clock=clock)
     parser.error(f"unknown command: {args.command!r}")  # pragma: no cover
     return 2  # pragma: no cover

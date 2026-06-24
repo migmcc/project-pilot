@@ -43,7 +43,7 @@ NEXT_ACTION: dict[Phase, str] = {
     Phase.BRIEF: "Import the SkillLab-approved brief with `pp brief import <path>`.",
     Phase.SETUP_ADVICE: "Prepare setup advice with `pp advise-setup`.",
     Phase.PLANNING: "Check readiness with `pp check-ateam`, then `pp execution approve`.",
-    Phase.EXECUTION: "Drive execution with the A-team; the final-validation gate follows.",
+    Phase.EXECUTION: "Drive execution with the A-team, then `pp final-validation prepare`.",
     Phase.FINAL_VALIDATION: "Complete the final-validation checklist.",
     Phase.DONE: "Project complete.",
 }

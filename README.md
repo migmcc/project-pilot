@@ -50,6 +50,9 @@ python -m projectpilot brief import path/to/PROJECT_BRIEF.md  # copies an extern
 python -m projectpilot advise-setup                 # deterministic manual advice (no install)
 python -m projectpilot check-ateam                  # read-only readiness check
 python -m projectpilot execution approve --reason "..." [--override]
+
+# Final-validation gate (manual checklist; ProjectPilot runs nothing)
+python -m projectpilot final-validation prepare
 ```
 
 State is stored in `.project-pilot/status.json`.
