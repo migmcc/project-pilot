@@ -1,11 +1,43 @@
-"""``pp status`` — show the current lifecycle phase and next action (read-only)."""
+"""``pp status`` -- show the current lifecycle phase and next action (read-only)."""
 from __future__ import annotations
 
 from pathlib import Path
 
 from ..errors import StateNotFoundError
-from ..phases import NEXT_ACTION, gate_for_next, next_phase
+from ..phases import NEXT_ACTION, Phase, gate_for_next, next_phase
 from ..state import load_state
+
+
+def _decision_line(decision: dict | None) -> str:
+    if not decision:
+        return "Decision: none"
+    reason = decision.get("reason", "")
+    suffix = f" -- {reason}" if reason else ""
+    return f"Decision: {decision['decision']} (source: {decision.get('source', 'unknown')}){suffix}"
+
+
+def _active_gate(state) -> str:
+    if state.current_phase != Phase.VALIDATION:
+        return gate_for_next(state.current_phase)
+
+    decision = state.decision
+    if not decision:
+        return "Waiting for a manual SkillLab decision."
+    if decision["decision"] == "APPROVED":
+        return "APPROVED decision recorded; `pp advance brief` is available."
+    return f"Decision is {decision['decision']}; APPROVED is required to advance."
+
+
+def _next_action(state) -> str:
+    if state.current_phase != Phase.VALIDATION:
+        return NEXT_ACTION[state.current_phase]
+
+    decision = state.decision
+    if not decision:
+        return 'Run `pp decision set <APPROVED|NEEDS_REWORK|REJECTED> --reason "..."`.'
+    if decision["decision"] == "APPROVED":
+        return "Run `pp advance brief`."
+    return "Return to SkillLab validation/rework, then record a new manual decision."
 
 
 def run_status(args) -> int:
@@ -23,6 +55,7 @@ def run_status(args) -> int:
     print(f"Project: {state.name} ({state.slug})")
     print(f"Current phase: {state.current_phase.value}")
     print(f"Next phase: {upcoming.value if upcoming else '(none — final phase)'}")
-    print(f"Active gate: {gate_for_next(state.current_phase)}")
-    print(f"Next action: {NEXT_ACTION[state.current_phase]}")
+    print(_decision_line(state.decision))
+    print(f"Active gate: {_active_gate(state)}")
+    print(f"Next action: {_next_action(state)}")
     return 0
