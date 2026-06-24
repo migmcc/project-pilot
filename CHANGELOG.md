@@ -3,26 +3,28 @@
 All notable changes to ProjectPilot are documented here. This project is local-only; versions are
 local baselines and are not published.
 
-## [Unreleased]
+## [0.2.0] - 2026-06-24
 
-### Changed — Claude/A-team diagnostics
+Local v0.2 baseline: agent-driven **autopilot** on top of the v0.1 lifecycle, plus richer local
+environment diagnostics and an opt-in A-team installer. ProjectPilot now drives the deterministic,
+safe steps and stops at each real human gate, writing local instruction files for the VSCode agent.
+Charter unchanged: it never calls SkillLab, the A-team, AgentDesk, or Claude Code slash commands, and
+uses no subprocess/network/GitHub/LLM.
 
-- **`pp doctor` and `pp setup ateam` now distinguish partial and complete Claude/A-team setups.**
-  They report global Claude directory presence, global skills presence/count, Superpowers detection,
-  full A-team install status, and missing/empty categories instead of collapsing the result into a
-  single likely-installed boolean. Global skills can be valid without `agents` / `commands`, and
-  Superpowers (`using-superpowers`) is reported separately from a complete A-team install.
-
-### Changed — `pp analyze` UX
-
-- **`pp analyze` now accepts an optional positional directory** as an alias for `--dir`, so
-  `pp analyze .` and `pp analyze path/to/project` work. `pp analyze` (current directory) and
-  `pp analyze --dir <path>` are unchanged. Supplying both the positional path and `--dir` fails
-  cleanly with `Use either positional path or --dir, not both.` (exit code 2). Read-only behaviour
-  is unchanged.
+### Added — Autopilot
+- **Autopilot** — `pp start --idea <path>` (reads the idea file, initializes state, runs to the first
+  human gate) and `pp continue` (resumes after a gate is cleared). Advances `idea → validation`,
+  `validation → brief` (only after `APPROVED`), and `setup-advice → planning` automatically; stops at
+  every human gate.
+- **Approval aliases** — `pp approve decision <APPROVED|NEEDS_REWORK|REJECTED> --reason` (records
+  only; does not advance), `pp approve execution --reason [--override]`, and `pp approve done
+  --reason`. Thin aliases over the existing commands; no new gate semantics.
+- **Coordination files** in `.project-pilot/` — `NEXT_ACTION.md` (always), `ACTION_REQUIRED.md`
+  (only when blocked; removed when the block clears), and a small deterministic `RUN_LOG.md`
+  regenerated from history.
+- **State** — added optional `idea_source` (path the idea was read from); `schema_version` stays `1`.
 
 ### Added — A-team installation (opt-in)
-
 - **`pp setup ateam --apply`** — installs the A-team into `~/.claude`, additively and
   non-destructively. Without `--apply` the command stays a read-only dry-run.
   - A **mandatory timestamped backup** is taken first at
@@ -41,7 +43,6 @@ local baselines and are not published.
   derived from the injectable clock for deterministic tests.
 
 ### Added — local environment commands
-
 - **`pp doctor`** — read-only diagnostic of the local environment: Python and Git availability,
   whether the working directory is inside a git repository, the presence of `~/.claude` and its
   `skills` / `agents` / `commands` sub-directories and `settings.json`, a likely-A-team-installed
@@ -51,16 +52,33 @@ local baselines and are not published.
   `package.json`, `README.md`, `tests/`, CI workflows), a new-vs-existing hint, whether the project
   is ProjectPilot-initialized, and a suggested next action (including when AgentDesk could help).
   Invents nothing.
-- **`pp setup ateam`** — safe-by-default dry-run for A-team setup: inspects the `~/.claude` target,
-  discovers possible A-team sources in common locations, reports what a future install would copy
-  (skills / agents / commands / settings), detects likely conflicts, and recommends a backup. Does
-  not write to `~/.claude`; no flag in v0.1 performs the install.
+- **`pp setup ateam`** (dry-run) — safe-by-default A-team setup diagnostic: inspects the `~/.claude`
+  target, discovers possible A-team sources in common locations, reports what an install would copy
+  (skills / agents / commands / settings), detects likely conflicts, and recommends a backup. Writes
+  nothing without `--apply`.
+
+### Changed — Claude/A-team diagnostics
+- **`pp doctor` and `pp setup ateam` now distinguish partial and complete Claude/A-team setups.**
+  They report global Claude directory presence, global skills presence/count, Superpowers detection,
+  full A-team install status, and missing/empty categories instead of collapsing the result into a
+  single likely-installed boolean. Global skills can be valid without `agents` / `commands`, and
+  Superpowers (`using-superpowers`) is reported separately from a complete A-team install.
+
+### Changed — `pp analyze` UX
+- **`pp analyze` now accepts an optional positional directory** as an alias for `--dir`, so
+  `pp analyze .` and `pp analyze path/to/project` work. `pp analyze` (current directory) and
+  `pp analyze --dir <path>` are unchanged. Supplying both the positional path and `--dir` fails
+  cleanly with `Use either positional path or --dir, not both.` (exit code 2). Read-only behaviour
+  is unchanged.
 
 ### Internals
-
 - New read-only modules `projectpilot.detectors` (stack + toolchain probes) and `projectpilot.ateam`
   (environment inspection + install planning). The CI workflows directory name is assembled from
   fragments so the no-automation guard's forbidden-token list stays intact.
+
+### Notes
+- The original v0.1 commands remain fully functional. Python 3.12+, stdlib-first, `unittest`-only.
+- No subprocess/network/GitHub/LLM in the runtime; no push/tag/release; nothing installed.
 
 ## [0.1.0] - 2026-06-24
 
@@ -95,4 +113,5 @@ project's lifecycle (`idea → done`). It never executes technically and does no
 - Tests use the standard library **`unittest`** only (no pytest).
 - No commits/push/release/tag from the runtime; no GitHub API; no AgentDesk; no A-team installation.
 
+[0.2.0]: local baseline (not published)
 [0.1.0]: local baseline (not published)
