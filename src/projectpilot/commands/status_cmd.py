@@ -29,6 +29,15 @@ def _setup_advice_line(setup_advice: dict | None) -> str:
     return f"Setup advice: prepared at {setup_advice['prepared_at']}"
 
 
+def _ateam_check_line(ateam_check: dict | None) -> str:
+    if not ateam_check:
+        return "A-team check: not run"
+    if ateam_check["ready"]:
+        return "A-team check: ready"
+    missing = ", ".join(ateam_check["missing_paths"])
+    return f"A-team check: not ready (missing: {missing})"
+
+
 def _active_gate(state) -> str:
     if state.current_phase != Phase.VALIDATION:
         return gate_for_next(state.current_phase)
@@ -71,6 +80,7 @@ def run_status(args) -> int:
     print(_decision_line(state.decision))
     print(_brief_line(state.brief))
     print(_setup_advice_line(state.setup_advice))
+    print(_ateam_check_line(state.ateam_check))
     print(f"Active gate: {_active_gate(state)}")
     print(f"Next action: {_next_action(state)}")
     return 0
