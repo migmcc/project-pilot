@@ -35,28 +35,28 @@ PHASE_ORDER: list[Phase] = [
     Phase.DONE,
 ]
 
-#: Human hint for what comes next at each phase. Items marked "(future:" name
-#: commands that land in later runs — Run A only ships ``init`` and ``status``.
+#: Human hint for what to do at each phase. Each hint names a command that
+#: already exists, except where the lifecycle has no further command yet.
 NEXT_ACTION: dict[Phase, str] = {
-    Phase.IDEA: "Generate the SkillLab validation prompt (future: pp validate).",
-    Phase.VALIDATION: "Record the SkillLab decision (future: pp decision set).",
-    Phase.BRIEF: "Generate PROJECT_BRIEF.md (future: pp brief).",
-    Phase.SETUP_ADVICE: "Get A-Team / minimal-builders advice (future: pp advise-setup).",
-    Phase.PLANNING: "Generate the run-organised plan (future: pp plan).",
-    Phase.EXECUTION: "Drive execution with the A-Team (future: pp next).",
-    Phase.FINAL_VALIDATION: "Run the final-validation checklist (future: pp finalize).",
+    Phase.IDEA: "Run `pp validate` to enter validation and generate the SkillLab prompt.",
+    Phase.VALIDATION: "Record the SkillLab decision with `pp decision set`.",
+    Phase.BRIEF: "Import the SkillLab-approved brief with `pp brief import <path>`.",
+    Phase.SETUP_ADVICE: "Prepare setup advice with `pp advise-setup`.",
+    Phase.PLANNING: "Check readiness with `pp check-ateam`, then `pp execution approve`.",
+    Phase.EXECUTION: "Drive execution with the A-team; the final-validation gate follows.",
+    Phase.FINAL_VALIDATION: "Complete the final-validation checklist.",
     Phase.DONE: "Project complete.",
 }
 
 #: Description of the gate guarding entry into the *next* phase.
 GATE_FOR_NEXT: dict[Phase, str] = {
-    Phase.IDEA: "SkillLab validation must produce a recorded decision (future).",
-    Phase.VALIDATION: "Recorded decision must be APPROVED to advance (future).",
-    Phase.BRIEF: "none",
-    Phase.SETUP_ADVICE: "none",
-    Phase.PLANNING: "A-Team must be operational, or an explicit override (future).",
-    Phase.EXECUTION: "Execution complete and reviewed (future).",
-    Phase.FINAL_VALIDATION: "Final-validation checklist complete (future).",
+    Phase.IDEA: "Run `pp validate` to proceed.",
+    Phase.VALIDATION: "An APPROVED decision is required to advance.",
+    Phase.BRIEF: "An imported brief is required to advance.",
+    Phase.SETUP_ADVICE: "Setup advice must be prepared to advance.",
+    Phase.PLANNING: "A-team readiness or an explicit override is required to advance.",
+    Phase.EXECUTION: "Execution must be complete and reviewed to advance.",
+    Phase.FINAL_VALIDATION: "Final validation must be complete to advance.",
     Phase.DONE: "none",
 }
 

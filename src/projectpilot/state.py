@@ -15,7 +15,8 @@ from typing import Any, Callable
 from .errors import StateNotFoundError
 from .phases import Phase
 
-#: Bumped only when the on-disk schema changes (paired with a migration shim).
+#: Increased only on backward-incompatible changes or mandatory migrations.
+#: Additive optional fields (which load via ``.get(...)``) keep version 1.
 SCHEMA_VERSION = 1
 
 STATE_DIRNAME = ".project-pilot"

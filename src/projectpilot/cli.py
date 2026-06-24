@@ -1,4 +1,10 @@
-"""Deterministic ``pp`` command-line interface."""
+"""Deterministic ``pp`` command-line interface.
+
+Transition policy (see README): commands that only *record* information do not
+advance the phase (``decision set``); ``advance brief`` is an explicit gated
+transition; commands that *complete* a phase's gate may advance the phase
+(``brief import``, ``advise-setup``, ``execution approve``).
+"""
 from __future__ import annotations
 
 import argparse
@@ -19,7 +25,7 @@ from .state import Clock, utc_now_iso
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pp",
-        description="ProjectPilot - local lifecycle orchestrator (Run A foundation).",
+        description="ProjectPilot lifecycle orchestrator",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

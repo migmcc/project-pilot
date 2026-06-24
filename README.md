@@ -4,7 +4,7 @@ A local, deterministic CLI that orchestrates and **enforces** a project's lifecy
 existing tooling ecosystem. It does not execute technically and never reimplements the A-Team or
 AgentDesk — it is a process conductor with explicit approval gates.
 
-> **Status: Run A (foundation).** Only `init` and `status` exist. Python 3.12+, stdlib-only.
+> **Status:** lifecycle implemented through the `execution` phase. Python 3.12+, stdlib-only.
 
 ## Charter
 
@@ -33,17 +33,42 @@ pip install -e .
 pp --help
 ```
 
-## Commands (Run A)
+## Commands
 
 ```bash
-# Initialize project state (.project-pilot/status.json) in the current directory
+# Foundation
 python -m projectpilot init "my project idea" --name "My Project"
+python -m projectpilot status                       # read-only
 
-# Show the current phase, next phase, active gate, and next action (read-only)
-python -m projectpilot status
+# Validation gate (SkillLab owns the decision)
+python -m projectpilot validate                     # emits the /skilllab-start-project prompt
+python -m projectpilot decision set APPROVED --reason "..."   # records only; does NOT advance
+python -m projectpilot advance brief                # explicit gated transition (requires APPROVED)
+
+# Brief intake, setup advice, A-team readiness, execution gate
+python -m projectpilot brief import path/to/PROJECT_BRIEF.md  # copies an external brief
+python -m projectpilot advise-setup                 # deterministic manual advice (no install)
+python -m projectpilot check-ateam                  # read-only readiness check
+python -m projectpilot execution approve --reason "..." [--override]
 ```
 
-State is stored in `.project-pilot/status.json` with a `schema_version` field.
+State is stored in `.project-pilot/status.json`.
+
+## Transition policy
+
+The lifecycle distinguishes *recording* from *advancing*:
+
+- Commands that only **record** information do **not** advance the phase — e.g. `decision set`.
+- `advance brief` is an **explicit, gated** transition (requires an `APPROVED` decision).
+- Commands that **complete** a phase's gate **may** advance the phase as part of their action —
+  `brief import` (→ `setup-advice`), `advise-setup` (→ `planning`), and `execution approve`
+  (→ `execution`).
+
+## State schema version
+
+`status.json` carries a `schema_version` field, currently **`1`**. It only increases on
+backward-incompatible changes or mandatory migrations; additive optional fields keep version `1`
+(older state files load with the new fields defaulting to empty).
 
 ## Tests
 
