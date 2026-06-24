@@ -25,6 +25,7 @@ from .state import Clock, ProjectState, load_state, state_dir
 
 NEXT_ACTION_FILENAME = "NEXT_ACTION.md"
 ACTION_REQUIRED_FILENAME = "ACTION_REQUIRED.md"
+RUN_LOG_FILENAME = "RUN_LOG.md"
 
 # Safety bound: the lifecycle has 8 phases, so the autopilot can never need more
 # than that many forward steps. Guards against any unexpected non-advancing loop.
@@ -67,13 +68,13 @@ def _gate_for(phase: Phase, state: ProjectState) -> tuple[str, str]:
             return (
                 f"Decision is {value}; APPROVED required",
                 f"The recorded decision is {value}. Return to SkillLab validation/rework, "
-                'then record a new decision: pp decision set <APPROVED|NEEDS_REWORK|REJECTED> '
-                '--reason "...".',
+                "then record a new decision:\n"
+                '  pp approve decision <APPROVED|NEEDS_REWORK|REJECTED> --reason "..."',
             )
         return (
             "SkillLab decision required",
             "Run `/skilllab-start-project` with the idea, then record the decision:\n"
-            '  pp decision set <APPROVED|NEEDS_REWORK|REJECTED> --reason "..."',
+            '  pp approve decision <APPROVED|NEEDS_REWORK|REJECTED> --reason "..."',
         )
     if phase is Phase.BRIEF:
         return (
@@ -85,7 +86,7 @@ def _gate_for(phase: Phase, state: ProjectState) -> tuple[str, str]:
         return (
             "Execution approval required",
             "Ensure the A-team is ready (or use --override), then run:\n"
-            '  pp execution approve --reason "..." [--override]',
+            '  pp approve execution --reason "..." [--override]',
         )
     if phase is Phase.EXECUTION:
         return (
@@ -96,7 +97,7 @@ def _gate_for(phase: Phase, state: ProjectState) -> tuple[str, str]:
     if phase is Phase.FINAL_VALIDATION:
         return (
             "Final-validation sign-off required",
-            'Complete the checklist, then run:\n  pp done approve --reason "..."',
+            'Complete the checklist, then run:\n  pp approve done --reason "..."',
         )
     return ("Manual review required", "Inspect `.project-pilot/status.json` and resolve manually.")
 
@@ -216,10 +217,60 @@ def summary_lines(result: AutopilotResult) -> list[str]:
     return out
 
 
+def write_run_log(base: Path, state: ProjectState) -> Path:
+    """Regenerate a small, deterministic run log from the recorded history."""
+    lines = ["# ProjectPilot - Run Log", ""]
+    if state.history:
+        for entry in state.history:
+            ts = entry.get("timestamp", "")
+            event = entry.get("event", "?")
+            phase = entry.get("phase", "")
+            lines.append(f"- {ts} {event} (phase: {phase})")
+    else:
+        lines.append("- (no events recorded)")
+    path = _coord_path(base, RUN_LOG_FILENAME)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+def _classify(state: ProjectState) -> AutopilotResult:
+    """Classify the CURRENT phase without performing any step.
+
+    "Not blocked" means an automatic step is available from here (run `pp continue`);
+    "blocked" means a human gate must be cleared first.
+    """
+    phase = state.current_phase
+    if phase is Phase.DONE:
+        return AutopilotResult(blocked=False, phase=phase)
+    if phase is Phase.IDEA:
+        return AutopilotResult(blocked=False, phase=phase)
+    if phase is Phase.SETUP_ADVICE:
+        return AutopilotResult(blocked=False, phase=phase)
+    if phase is Phase.VALIDATION:
+        decision = state.decision
+        if decision and decision.get("decision") == "APPROVED":
+            return AutopilotResult(blocked=False, phase=phase)
+        return _blocked([], state)
+    return _blocked([], state)
+
+
+def _write_coordination(base: Path, state: ProjectState, result: AutopilotResult, *, clock: Clock) -> None:
+    write_next_action(base, state, result, clock=clock)
+    write_or_clear_action_required(base, state, result, clock=clock)
+    write_run_log(base, state)
+
+
 def drive(base: Path, *, clock: Clock) -> AutopilotResult:
     """Run the autopilot and refresh the coordination files from state."""
     result = run_autopilot(base, clock=clock)
     state = load_state(base)
-    write_next_action(base, state, result, clock=clock)
-    write_or_clear_action_required(base, state, result, clock=clock)
+    _write_coordination(base, state, result, clock=clock)
+    return result
+
+
+def refresh(base: Path, *, clock: Clock) -> AutopilotResult:
+    """Regenerate the coordination files from the CURRENT state (no advancing)."""
+    state = load_state(base)
+    result = _classify(state)
+    _write_coordination(base, state, result, clock=clock)
     return result

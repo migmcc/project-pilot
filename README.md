@@ -98,6 +98,51 @@ a complete A-team install. Global `skills` can be present and valid even when `a
 are missing or empty. Superpowers skills such as `using-superpowers` are reported explicitly, but
 they are not treated as proof of a full A-team install.
 
+## Autopilot (v0.2)
+
+The autopilot drives the lifecycle through the deterministic, safe steps and stops at each real
+human gate. It is **agent-driven**: ProjectPilot never calls SkillLab, the A-team, AgentDesk, or
+Claude Code slash commands, and never uses subprocess/network/GitHub/LLM. It only writes local
+instruction files that the VSCode agent (and you) act on.
+
+```bash
+# In a new project folder containing idea.md:
+python -m projectpilot start --idea idea.md --name "My Project"
+#   → auto-runs the safe steps, stops at the first human gate, writes the coordination files.
+
+python -m projectpilot continue        # resume the autopilot after a human gate is cleared
+
+# Friendly approval aliases (human gates):
+python -m projectpilot approve decision APPROVED --reason "..."   # records only; does NOT advance
+python -m projectpilot approve decision NEEDS_REWORK --reason "..."
+python -m projectpilot approve decision REJECTED --reason "..."
+python -m projectpilot approve execution --reason "..." [--override]   # advances → execution
+python -m projectpilot approve done --reason "..."                     # advances → done
+```
+
+`approve decision` is an alias for `decision set` (records only); advancing after `APPROVED` is done
+by `pp continue`. `approve execution` and `approve done` alias the existing gate-completing commands.
+The original commands remain fully functional.
+
+### Coordination files (in `.project-pilot/`)
+
+- `NEXT_ACTION.md` — always written: current phase, what the autopilot just did, and the single next
+  action (with safe instructions for the VSCode agent).
+- `ACTION_REQUIRED.md` — written only when blocked on a human gate; **removed** when the block clears.
+- `RUN_LOG.md` — a small, deterministic log regenerated from the recorded history.
+
+### Intended VSCode flow
+
+1. Open VSCode in the new project folder; create `idea.md`.
+2. Run `pp start --idea idea.md`. ProjectPilot advances to the first human gate and writes
+   `NEXT_ACTION.md` / `ACTION_REQUIRED.md`.
+3. The agent/human performs the required human step (e.g. run `/skilllab-start-project`, then
+   `pp approve decision ...`; or `pp brief import <path>`; or `pp approve execution ...`).
+4. Run `pp continue` to advance to the next gate. Repeat until `done`.
+
+ProjectPilot does **not** call SkillLab, the A-team, or AgentDesk automatically — it only prepares
+local instructions and records your explicit approvals.
+
 ## Transition policy
 
 The lifecycle distinguishes *recording* from *advancing*:

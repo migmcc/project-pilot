@@ -12,6 +12,7 @@ from typing import Sequence
 
 from .commands.advance_cmd import run_advance
 from .commands.analyze_cmd import run_analyze
+from .commands.approve_cmd import run_approve
 from .commands.brief_cmd import run_brief_import
 from .commands.continue_cmd import run_continue
 from .commands.check_ateam_cmd import run_check_ateam
@@ -198,6 +199,35 @@ def build_parser() -> argparse.ArgumentParser:
         "--dir", default=".", help="Project directory (default: current)."
     )
 
+    p_approve = subparsers.add_parser(
+        "approve", help="Friendly approval aliases (record/advance human gates)."
+    )
+    approve_subparsers = p_approve.add_subparsers(dest="approve_command", required=True)
+
+    a_decision = approve_subparsers.add_parser(
+        "decision", help="Alias for `decision set` (records only; does not advance)."
+    )
+    a_decision.add_argument("decision", choices=("APPROVED", "NEEDS_REWORK", "REJECTED"))
+    a_decision.add_argument("--reason", required=True, help="Decision rationale.")
+    a_decision.add_argument("--dir", default=".", help="Project directory (default: current).")
+
+    a_execution = approve_subparsers.add_parser(
+        "execution", help="Alias for `execution approve` (advances planning -> execution)."
+    )
+    a_execution.add_argument("--reason", required=True, help="Approval reason.")
+    a_execution.add_argument(
+        "--override",
+        action="store_true",
+        help="Approve even when A-team readiness is not complete.",
+    )
+    a_execution.add_argument("--dir", default=".", help="Project directory (default: current).")
+
+    a_done = approve_subparsers.add_parser(
+        "done", help="Alias for `done approve` (advances final-validation -> done)."
+    )
+    a_done.add_argument("--reason", required=True, help="Closure reason.")
+    a_done.add_argument("--dir", default=".", help="Project directory (default: current).")
+
     return parser
 
 
@@ -236,5 +266,7 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
         return run_final_validation_prepare(args, clock=clock)
     if args.command == "done" and args.done_command == "approve":
         return run_done_approve(args, clock=clock)
+    if args.command == "approve":
+        return run_approve(args, clock=clock)
     parser.error(f"unknown command: {args.command!r}")  # pragma: no cover
     return 2  # pragma: no cover

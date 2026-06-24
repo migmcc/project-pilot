@@ -48,6 +48,23 @@ class StartTests(unittest.TestCase):
             self.assertTrue(ar.exists())
             self.assertIn("/skilllab-start-project", ar.read_text(encoding="utf-8"))
 
+    def test_start_action_required_shows_approve_alias(self):
+        with tempfile.TemporaryDirectory() as d:
+            idea = _idea_file(d)
+            with contextlib.redirect_stdout(io.StringIO()):
+                main(["start", "--idea", str(idea), "--dir", d], clock=clock)
+            ar = (state_dir(Path(d)) / "ACTION_REQUIRED.md").read_text(encoding="utf-8")
+            self.assertIn("pp approve decision", ar)
+
+    def test_start_writes_run_log(self):
+        with tempfile.TemporaryDirectory() as d:
+            idea = _idea_file(d)
+            with contextlib.redirect_stdout(io.StringIO()):
+                main(["start", "--idea", str(idea), "--dir", d], clock=clock)
+            run_log = state_dir(Path(d)) / "RUN_LOG.md"
+            self.assertTrue(run_log.exists())
+            self.assertIn("start", run_log.read_text(encoding="utf-8"))
+
     def test_start_missing_idea_file_fails_and_creates_no_state(self):
         with tempfile.TemporaryDirectory() as d:
             with contextlib.redirect_stdout(io.StringIO()):

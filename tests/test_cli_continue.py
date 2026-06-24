@@ -102,7 +102,7 @@ class ContinueTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 main(["continue", "--dir", d], clock=clock)
             self.assertEqual(_read(d)["current_phase"], "planning")
-            self.assertIn("execution approve", _ar_path(d).read_text(encoding="utf-8"))
+            self.assertIn("approve execution", _ar_path(d).read_text(encoding="utf-8"))
 
     def test_continue_at_done_removes_action_required(self):
         with tempfile.TemporaryDirectory() as d:
