@@ -44,7 +44,7 @@ NEXT_ACTION: dict[Phase, str] = {
     Phase.SETUP_ADVICE: "Prepare setup advice with `pp advise-setup`.",
     Phase.PLANNING: "Check readiness with `pp check-ateam`, then `pp execution approve`.",
     Phase.EXECUTION: "Drive execution with the A-team, then `pp final-validation prepare`.",
-    Phase.FINAL_VALIDATION: "Complete the final-validation checklist.",
+    Phase.FINAL_VALIDATION: "Complete the checklist, then `pp done approve --reason \"...\"`.",
     Phase.DONE: "Project complete.",
 }
 

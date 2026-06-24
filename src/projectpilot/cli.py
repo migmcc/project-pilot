@@ -14,6 +14,7 @@ from .commands.advance_cmd import run_advance
 from .commands.brief_cmd import run_brief_import
 from .commands.check_ateam_cmd import run_check_ateam
 from .commands.decision_cmd import run_decision_set
+from .commands.done_cmd import run_done_approve
 from .commands.execution_cmd import run_execution_approve
 from .commands.final_validation_cmd import run_final_validation_prepare
 from .commands.init_cmd import run_init
@@ -131,6 +132,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--dir", default=".", help="Project directory (default: current)."
     )
 
+    p_done = subparsers.add_parser("done", help="Manage the done gate.")
+    done_subparsers = p_done.add_subparsers(dest="done_command", required=True)
+    p_done_approve = done_subparsers.add_parser(
+        "approve", help="Manually close the lifecycle (advance to 'done')."
+    )
+    p_done_approve.add_argument("--reason", required=True, help="Closure reason.")
+    p_done_approve.add_argument(
+        "--dir", default=".", help="Project directory (default: current)."
+    )
+
     return parser
 
 
@@ -157,5 +168,7 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
         return run_execution_approve(args, clock=clock)
     if args.command == "final-validation" and args.final_validation_command == "prepare":
         return run_final_validation_prepare(args, clock=clock)
+    if args.command == "done" and args.done_command == "approve":
+        return run_done_approve(args, clock=clock)
     parser.error(f"unknown command: {args.command!r}")  # pragma: no cover
     return 2  # pragma: no cover

@@ -4,7 +4,7 @@ A local, deterministic CLI that orchestrates and **enforces** a project's lifecy
 existing tooling ecosystem. It does not execute technically and never reimplements the A-Team or
 AgentDesk — it is a process conductor with explicit approval gates.
 
-> **Status:** lifecycle implemented through the `execution` phase. Python 3.12+, stdlib-only.
+> **Status:** full lifecycle implemented (`idea` → `done`). Python 3.12+, stdlib-only.
 
 ## Charter
 
@@ -53,6 +53,9 @@ python -m projectpilot execution approve --reason "..." [--override]
 
 # Final-validation gate (manual checklist; ProjectPilot runs nothing)
 python -m projectpilot final-validation prepare
+
+# Done gate (manual closure; no release, tag, or push)
+python -m projectpilot done approve --reason "..."
 ```
 
 State is stored in `.project-pilot/status.json`.

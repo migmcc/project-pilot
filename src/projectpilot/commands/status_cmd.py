@@ -54,6 +54,12 @@ def _final_validation_line(final_validation: dict | None) -> str:
     return f"Final validation: prepared at {final_validation['prepared_at']}"
 
 
+def _done_approval_line(done_approval: dict | None) -> str:
+    if not done_approval:
+        return "Done approval: not approved"
+    return f"Done approval: approved at {done_approval['approved_at']} -- {done_approval['reason']}"
+
+
 def _active_gate(state) -> str:
     if state.current_phase != Phase.VALIDATION:
         return gate_for_next(state.current_phase)
@@ -99,6 +105,7 @@ def run_status(args) -> int:
     print(_ateam_check_line(state.ateam_check))
     print(_execution_approval_line(state.execution_approval))
     print(_final_validation_line(state.final_validation))
+    print(_done_approval_line(state.done_approval))
     print(f"Active gate: {_active_gate(state)}")
     print(f"Next action: {_next_action(state)}")
     return 0

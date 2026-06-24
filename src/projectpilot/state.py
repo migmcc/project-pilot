@@ -57,6 +57,7 @@ class ProjectState:
     ateam_check: dict[str, Any] | None = None
     execution_approval: dict[str, Any] | None = None
     final_validation: dict[str, Any] | None = None
+    done_approval: dict[str, Any] | None = None
     history: list[dict[str, Any]] = field(default_factory=list)
     schema_version: int = SCHEMA_VERSION
 
@@ -77,6 +78,7 @@ class ProjectState:
             "ateam_check": self.ateam_check,
             "execution_approval": self.execution_approval,
             "final_validation": self.final_validation,
+            "done_approval": self.done_approval,
             "history": self.history,
             "updated_at": self.updated_at,
         }
@@ -97,6 +99,7 @@ class ProjectState:
             ateam_check=data.get("ateam_check"),
             execution_approval=data.get("execution_approval"),
             final_validation=data.get("final_validation"),
+            done_approval=data.get("done_approval"),
             history=list(data.get("history", [])),
             schema_version=data.get("schema_version", SCHEMA_VERSION),
         )
