@@ -8,13 +8,14 @@ AgentDesk — it is a process conductor with explicit approval gates.
 
 ## Charter
 
-ProjectPilot orchestrates and enforces the lifecycle; it never executes technically nor reimplements
-the A-Team (the primary execution engine) or AgentDesk (optional/complementary). No automation of
-commits, push, release, or tool installation; no GitHub API.
+ProjectPilot orchestrates and enforces the lifecycle; it never executes technically. It does **not
+replace** SkillLab (which owns idea validation), the A-Team (the primary execution engine), or
+AgentDesk (optional/complementary), and it never reimplements them. No automation of commits, push,
+release, or tool installation; no GitHub API.
 
 ## Canonical lifecycle phases (D5)
 
-```
+```text
 idea → validation → brief → setup-advice → planning → execution → final-validation → done
 ```
 
@@ -67,8 +68,8 @@ The lifecycle distinguishes *recording* from *advancing*:
 - Commands that only **record** information do **not** advance the phase — e.g. `decision set`.
 - `advance brief` is an **explicit, gated** transition (requires an `APPROVED` decision).
 - Commands that **complete** a phase's gate **may** advance the phase as part of their action —
-  `brief import` (→ `setup-advice`), `advise-setup` (→ `planning`), and `execution approve`
-  (→ `execution`).
+  `brief import` (→ `setup-advice`), `advise-setup` (→ `planning`), `execution approve`
+  (→ `execution`), `final-validation prepare` (→ `final-validation`), and `done approve` (→ `done`).
 
 ## State schema version
 

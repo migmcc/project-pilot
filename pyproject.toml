@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "projectpilot"
 version = "0.1.0"
-description = "Local, deterministic lifecycle orchestrator CLI (Run A foundation)."
+description = "Local, deterministic lifecycle orchestrator CLI."
 requires-python = ">=3.12"
 dependencies = []
 
