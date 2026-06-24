@@ -13,6 +13,7 @@ from typing import Sequence
 from .commands.advance_cmd import run_advance
 from .commands.analyze_cmd import run_analyze
 from .commands.brief_cmd import run_brief_import
+from .commands.continue_cmd import run_continue
 from .commands.check_ateam_cmd import run_check_ateam
 from .commands.decision_cmd import run_decision_set
 from .commands.doctor_cmd import run_doctor
@@ -22,6 +23,7 @@ from .commands.final_validation_cmd import run_final_validation_prepare
 from .commands.init_cmd import run_init
 from .commands.setup_advice_cmd import run_advise_setup
 from .commands.setup_cmd import run_setup_ateam
+from .commands.start_cmd import run_start
 from .commands.status_cmd import run_status
 from .commands.validate_cmd import run_validate
 from .state import Clock, utc_now_iso
@@ -47,6 +49,21 @@ def build_parser() -> argparse.ArgumentParser:
         "status", help="Show the current phase and next action (read-only)."
     )
     p_status.add_argument("--dir", default=".", help="Project directory (default: current).")
+
+    p_start = subparsers.add_parser(
+        "start", help="Read an idea file, initialize state, and run the autopilot."
+    )
+    p_start.add_argument("--idea", required=True, help="Path to the idea file (e.g. idea.md).")
+    p_start.add_argument("--name", default=None, help="Human-readable project name.")
+    p_start.add_argument("--dir", default=".", help="Project directory (default: current).")
+    p_start.add_argument(
+        "--force", action="store_true", help="Re-initialize state from the idea file."
+    )
+
+    p_continue = subparsers.add_parser(
+        "continue", help="Run the autopilot from the current state to the next human gate."
+    )
+    p_continue.add_argument("--dir", default=".", help="Project directory (default: current).")
 
     p_doctor = subparsers.add_parser(
         "doctor", help="Report on the local environment (read-only; changes nothing)."
@@ -191,6 +208,10 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
         return run_init(args, clock=clock)
     if args.command == "status":
         return run_status(args)
+    if args.command == "start":
+        return run_start(args, clock=clock)
+    if args.command == "continue":
+        return run_continue(args, clock=clock)
     if args.command == "doctor":
         return run_doctor(args)
     if args.command == "analyze":

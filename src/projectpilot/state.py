@@ -50,6 +50,7 @@ class ProjectState:
     idea: str
     created_at: str
     updated_at: str
+    idea_source: str | None = None
     current_phase: Phase = Phase.IDEA
     decision: dict[str, Any] | None = None
     brief: dict[str, Any] | None = None
@@ -70,6 +71,7 @@ class ProjectState:
                 "slug": self.slug,
                 "idea": self.idea,
                 "created_at": self.created_at,
+                "idea_source": self.idea_source,
             },
             "current_phase": self.current_phase.value,
             "decision": self.decision,
@@ -91,6 +93,7 @@ class ProjectState:
             slug=project["slug"],
             idea=project["idea"],
             created_at=project["created_at"],
+            idea_source=project.get("idea_source"),
             updated_at=data["updated_at"],
             current_phase=Phase(data["current_phase"]),
             decision=data.get("decision"),
