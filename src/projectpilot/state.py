@@ -54,6 +54,7 @@ class ProjectState:
     brief: dict[str, Any] | None = None
     setup_advice: dict[str, Any] | None = None
     ateam_check: dict[str, Any] | None = None
+    execution_approval: dict[str, Any] | None = None
     history: list[dict[str, Any]] = field(default_factory=list)
     schema_version: int = SCHEMA_VERSION
 
@@ -72,6 +73,7 @@ class ProjectState:
             "brief": self.brief,
             "setup_advice": self.setup_advice,
             "ateam_check": self.ateam_check,
+            "execution_approval": self.execution_approval,
             "history": self.history,
             "updated_at": self.updated_at,
         }
@@ -90,6 +92,7 @@ class ProjectState:
             brief=data.get("brief"),
             setup_advice=data.get("setup_advice"),
             ateam_check=data.get("ateam_check"),
+            execution_approval=data.get("execution_approval"),
             history=list(data.get("history", [])),
             schema_version=data.get("schema_version", SCHEMA_VERSION),
         )

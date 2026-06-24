@@ -8,6 +8,7 @@ from .commands.advance_cmd import run_advance
 from .commands.brief_cmd import run_brief_import
 from .commands.check_ateam_cmd import run_check_ateam
 from .commands.decision_cmd import run_decision_set
+from .commands.execution_cmd import run_execution_approve
 from .commands.init_cmd import run_init
 from .commands.setup_advice_cmd import run_advise_setup
 from .commands.status_cmd import run_status
@@ -91,6 +92,25 @@ def build_parser() -> argparse.ArgumentParser:
         "--dir", default=".", help="Project directory (default: current)."
     )
 
+    p_execution = subparsers.add_parser(
+        "execution", help="Manage the manual execution gate."
+    )
+    execution_subparsers = p_execution.add_subparsers(
+        dest="execution_command", required=True
+    )
+    p_execution_approve = execution_subparsers.add_parser(
+        "approve", help="Manually approve the move from planning to execution."
+    )
+    p_execution_approve.add_argument("--reason", required=True, help="Approval reason.")
+    p_execution_approve.add_argument(
+        "--override",
+        action="store_true",
+        help="Approve even when A-team readiness is not complete.",
+    )
+    p_execution_approve.add_argument(
+        "--dir", default=".", help="Project directory (default: current)."
+    )
+
     return parser
 
 
@@ -113,5 +133,7 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
         return run_advise_setup(args, clock=clock)
     if args.command == "check-ateam":
         return run_check_ateam(args, clock=clock)
+    if args.command == "execution" and args.execution_command == "approve":
+        return run_execution_approve(args, clock=clock)
     parser.error(f"unknown command: {args.command!r}")  # pragma: no cover
     return 2  # pragma: no cover

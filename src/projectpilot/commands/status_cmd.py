@@ -38,6 +38,16 @@ def _ateam_check_line(ateam_check: dict | None) -> str:
     return f"A-team check: not ready (missing: {missing})"
 
 
+def _execution_approval_line(execution_approval: dict | None) -> str:
+    if not execution_approval:
+        return "Execution approval: not approved"
+    override = " with override" if execution_approval["override"] else ""
+    return (
+        "Execution approval: approved"
+        f"{override} -- {execution_approval['reason']}"
+    )
+
+
 def _active_gate(state) -> str:
     if state.current_phase != Phase.VALIDATION:
         return gate_for_next(state.current_phase)
@@ -81,6 +91,7 @@ def run_status(args) -> int:
     print(_brief_line(state.brief))
     print(_setup_advice_line(state.setup_advice))
     print(_ateam_check_line(state.ateam_check))
+    print(_execution_approval_line(state.execution_approval))
     print(f"Active gate: {_active_gate(state)}")
     print(f"Next action: {_next_action(state)}")
     return 0
