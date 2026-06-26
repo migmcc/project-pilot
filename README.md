@@ -47,6 +47,7 @@ python -m projectpilot status                       # read-only
 python -m projectpilot doctor                        # Python/Git/repo + ~/.claude + A-team signals
 python -m projectpilot analyze                       # detect stack/state, suggest next action
 python -m projectpilot setup ateam                   # dry-run plan for installing the A-team
+python -m projectpilot setup ateam --apply           # install into ~/.claude (backs up first)
 
 # Validation gate (SkillLab owns the decision)
 python -m projectpilot validate                     # emits the /skilllab-start-project prompt
@@ -67,6 +68,29 @@ python -m projectpilot done approve --reason "..."
 ```
 
 State is stored in `.project-pilot/status.json`.
+
+## Installing the A-team (`pp setup ateam`)
+
+`pp setup ateam` is the one command that can write *outside* the project, into the global
+`~/.claude`. It is safe by default and only writes when you ask:
+
+- **`pp setup ateam`** (no flag) — **diagnostic only**. Inspects `~/.claude` and any common A-team
+  source, reports what an install would copy and where it would conflict, and writes nothing.
+- **`pp setup ateam --apply`** — **installs into `~/.claude`**, additively and non-destructively:
+  - a **timestamped backup is mandatory** and is taken first, at
+    `~/.claude/backups/projectpilot-ateam-YYYYMMDD-HHMMSS/` (covering existing `skills`, `agents`,
+    `commands`, and `settings.json`);
+  - missing directories are created and new content is copied in;
+  - identical content is left as `unchanged`;
+  - **differing content is never overwritten** — the existing file is preserved and the incoming
+    copy is written beside it with a `.projectpilot-new` suffix and flagged as a `conflict` for you
+    to reconcile;
+  - an existing `settings.json` is **never modified** (reported as `preserved`); merging
+    hooks/settings is deferred to a future run;
+  - the **source is never modified** and **`00_Base` is never deleted**.
+
+The real A-team install therefore stays under your explicit control: nothing reaches `~/.claude`
+without `--apply`, and nothing is ever deleted or overwritten.
 
 ## Transition policy
 

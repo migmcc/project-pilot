@@ -1,19 +1,32 @@
-"""``pp setup ateam`` -- diagnostic dry-run for A-team setup.
+"""``pp setup ateam`` -- inspect (default) or install (``--apply``) the A-team.
 
-Safe by default: it inspects the global ``~/.claude`` target and any common
-A-team source, reports what a future install would need and where it would
-conflict, and recommends a backup. It installs nothing and never writes to
-``~/.claude`` -- there is no flag in v0.1 that performs the install.
+Default (no ``--apply``): a safe, read-only dry-run. It inspects the global
+``~/.claude`` target and any common A-team source, reports what a future install
+would copy and where it would conflict, and recommends a backup. It writes
+nothing.
+
+With ``--apply``: an additive, non-destructive install into ``~/.claude``. It
+always takes a timestamped backup first, creates missing directories, copies new
+content in, leaves identical content untouched, never overwrites differing
+content (it writes a sidecar and flags a conflict), and never modifies an
+existing ``settings.json``. The source (e.g. ``00_Base``) is never altered.
 """
 from __future__ import annotations
 
 from pathlib import Path
 
 from .. import ateam
+from ..state import Clock
 
 
-def run_setup_ateam(args) -> int:
+def run_setup_ateam(args, *, clock: Clock) -> int:
     home = Path(args.home) if getattr(args, "home", None) else Path.home()
+    if getattr(args, "apply", False):
+        return _run_apply(home, clock)
+    return _run_dry_run(home)
+
+
+def _run_dry_run(home: Path) -> int:
     env = ateam.inspect_env(home)
 
     lines = ["pp setup ateam (dry-run -- nothing will be installed or changed)", ""]
@@ -67,8 +80,78 @@ def run_setup_ateam(args) -> int:
         lines.append("Recommendation: still back up ~/.claude before any future write.")
 
     lines.append("")
+    lines.append("This is a dry-run. ~/.claude was not touched.")
     lines.append(
-        "This is a dry-run. No flag in v0.1 performs the install; ~/.claude was not touched."
+        "Re-run with `--apply` to install (a timestamped backup is taken first; "
+        "existing files are never overwritten)."
     )
+    print("\n".join(lines))
+    return 0
+
+
+def _run_apply(home: Path, clock: Clock) -> int:
+    sources = ateam.discover_sources(home)
+    if not sources:
+        lines = [
+            "pp setup ateam --apply",
+            "",
+            "No valid A-team source found in common locations. Nothing was written.",
+            "Common locations checked (relative to home):",
+            *[f"- {rel}" for rel in ateam.DEFAULT_SOURCE_CANDIDATES],
+        ]
+        print("\n".join(lines))
+        return 1
+
+    source = sources[0]
+    stamp = ateam.compact_stamp(clock())
+    result = ateam.apply_ateam(source, home, stamp=stamp)
+
+    lines = ["pp setup ateam --apply", ""]
+    lines.append(f"Source: {result.source}")
+    lines.append(f"Target: {result.target}")
+    lines.append("")
+
+    if result.backup_dir is not None:
+        lines.append(f"Backup: {result.backup_dir}")
+        lines.append(f"- backed up: {', '.join(result.backed_up)}")
+    else:
+        lines.append("Backup: nothing existing to back up.")
+    lines.append("")
+
+    if result.created_dirs:
+        lines.append("Created directories:")
+        lines.extend(f"- {d}" for d in result.created_dirs)
+        lines.append("")
+
+    for category in ateam.ATEAM_CATEGORIES:
+        cat_items = [i for i in result.items if i.category == category]
+        lines.append(f"{category}:")
+        if not cat_items:
+            lines.append("- (nothing available in source)")
+            continue
+        for item in cat_items:
+            suffix = f" -- {item.detail}" if item.detail else ""
+            lines.append(f"- {item.name}: {item.status}{suffix}")
+    lines.append("")
+
+    lines.append(f"settings.json (hooks/settings): {result.settings_status}")
+    if result.settings_status == "preserved":
+        lines.append(
+            "  An existing settings.json differs from the source and was left "
+            "untouched. Merging hooks/settings is deferred to a future run."
+        )
+    lines.append("")
+
+    lines.append(
+        f"Summary: {len(result.copied)} copied, {len(result.unchanged)} unchanged, "
+        f"{len(result.conflicts)} conflict(s)."
+    )
+    if result.conflicts:
+        lines.append(
+            "Conflicts were not overwritten; incoming copies were written beside "
+            f"the originals with the `{ateam.CONFLICT_SUFFIX}` suffix. Review and "
+            "reconcile them manually."
+        )
+    lines.append("Nothing was deleted; the source was not modified.")
     print("\n".join(lines))
     return 0

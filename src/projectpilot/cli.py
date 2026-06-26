@@ -60,11 +60,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_analyze.add_argument("--dir", default=".", help="Project directory (default: current).")
 
     p_setup = subparsers.add_parser(
-        "setup", help="Diagnostic setup helpers (dry-run; changes nothing in v0.1)."
+        "setup", help="A-team setup: diagnose (default) or install (--apply)."
     )
     setup_subparsers = p_setup.add_subparsers(dest="setup_command", required=True)
     p_setup_ateam = setup_subparsers.add_parser(
-        "ateam", help="Dry-run plan for installing the A-team into ~/.claude."
+        "ateam",
+        help="Diagnose A-team setup (dry-run); use --apply to install into ~/.claude.",
+    )
+    p_setup_ateam.add_argument(
+        "--apply",
+        action="store_true",
+        help="Install into ~/.claude (additive; backs up first; never overwrites).",
     )
     p_setup_ateam.add_argument("--home", default=None, help=argparse.SUPPRESS)
 
@@ -180,7 +186,7 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
     if args.command == "analyze":
         return run_analyze(args)
     if args.command == "setup" and args.setup_command == "ateam":
-        return run_setup_ateam(args)
+        return run_setup_ateam(args, clock=clock)
     if args.command == "validate":
         return run_validate(args, clock=clock)
     if args.command == "decision" and args.decision_command == "set":

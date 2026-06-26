@@ -5,6 +5,25 @@ local baselines and are not published.
 
 ## [Unreleased]
 
+### Added — A-team installation (opt-in)
+
+- **`pp setup ateam --apply`** — installs the A-team into `~/.claude`, additively and
+  non-destructively. Without `--apply` the command stays a read-only dry-run.
+  - A **mandatory timestamped backup** is taken first at
+    `~/.claude/backups/projectpilot-ateam-YYYYMMDD-HHMMSS/` (existing `skills` / `agents` /
+    `commands` / `settings.json`).
+  - Missing directories are created; new content is copied; **identical content is left
+    `unchanged`**; **differing content is never overwritten** — the original is preserved and the
+    incoming copy is written beside it with a `.projectpilot-new` suffix and flagged as a
+    `conflict`.
+  - An existing `settings.json` is **never modified** (`preserved`); hooks/settings merging is
+    deferred to a future run.
+  - Fails cleanly without writing anything when no valid A-team source is found. The source
+    (e.g. `00_Base`) is never modified or deleted.
+- New read-only/install primitives in `projectpilot.ateam`: `backup_existing`, `apply_ateam`,
+  `compact_stamp`, and the `ApplyResult` / `ApplyItem` report types. The backup directory name is
+  derived from the injectable clock for deterministic tests.
+
 ### Added — local environment commands
 
 - **`pp doctor`** — read-only diagnostic of the local environment: Python and Git availability,

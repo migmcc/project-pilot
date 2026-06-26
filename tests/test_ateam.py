@@ -79,5 +79,85 @@ class PlanInstallTests(unittest.TestCase):
             self.assertEqual(skills_plan.source_count, 1)
 
 
+class CompactStampTests(unittest.TestCase):
+    def test_iso_to_stamp(self):
+        self.assertEqual(ateam.compact_stamp("2026-06-26T10:00:00Z"), "20260626-100000")
+
+    def test_padding_is_safe(self):
+        # Never raises and always returns the YYYYMMDD-HHMMSS shape.
+        self.assertRegex(ateam.compact_stamp(""), r"^\d{8}-\d{6}$")
+
+
+class BackupExistingTests(unittest.TestCase):
+    def test_nothing_to_back_up(self):
+        with tempfile.TemporaryDirectory() as d:
+            backup_dir, backed_up = ateam.backup_existing(Path(d), "STAMP")
+            self.assertIsNone(backup_dir)
+            self.assertEqual(backed_up, [])
+
+    def test_backs_up_existing_categories_and_settings(self):
+        with tempfile.TemporaryDirectory() as d:
+            home = Path(d)
+            _make_claude(ateam.claude_home(home), categories=("skills",), settings=True)
+            backup_dir, backed_up = ateam.backup_existing(home, "STAMP")
+            self.assertIsNotNone(backup_dir)
+            self.assertTrue((backup_dir / "skills" / "placeholder").is_file())
+            self.assertTrue((backup_dir / "settings.json").is_file())
+            self.assertIn("skills", backed_up)
+            self.assertIn("settings.json", backed_up)
+
+
+class ApplyAteamTests(unittest.TestCase):
+    def _source(self, home: Path) -> Path:
+        src = home / "00_Base" / ".claude"
+        (src / "skills" / "skill-a").mkdir(parents=True)
+        (src / "skills" / "skill-a" / "SKILL.md").write_text("alpha\n", encoding="utf-8")
+        (src / "agents").mkdir()
+        (src / "agents" / "agent-a.md").write_text("agent\n", encoding="utf-8")
+        (src / "commands").mkdir()
+        return src
+
+    def test_apply_copies_into_empty_target(self):
+        with tempfile.TemporaryDirectory() as d:
+            home = Path(d)
+            src = self._source(home)
+            result = ateam.apply_ateam(src, home, stamp="STAMP")
+            self.assertIsNone(result.backup_dir)
+            self.assertEqual(len(result.conflicts), 0)
+            statuses = {(i.category, i.name): i.status for i in result.items}
+            self.assertEqual(statuses[("skills", "skill-a")], "copied")
+            self.assertEqual(statuses[("agents", "agent-a.md")], "copied")
+            self.assertTrue(
+                (ateam.claude_home(home) / "skills" / "skill-a" / "SKILL.md").is_file()
+            )
+
+    def test_apply_conflict_writes_sidecar(self):
+        with tempfile.TemporaryDirectory() as d:
+            home = Path(d)
+            src = self._source(home)
+            agents = ateam.claude_home(home) / "agents"
+            agents.mkdir(parents=True)
+            (agents / "agent-a.md").write_text("DIFFERENT\n", encoding="utf-8")
+            result = ateam.apply_ateam(src, home, stamp="STAMP")
+            self.assertEqual(len(result.conflicts), 1)
+            self.assertEqual(
+                (agents / "agent-a.md").read_text(encoding="utf-8"), "DIFFERENT\n"
+            )
+            self.assertTrue((agents / "agent-a.md.projectpilot-new").is_file())
+            # A backup was taken because the target had pre-existing content.
+            self.assertIsNotNone(result.backup_dir)
+
+    def test_apply_unchanged_for_identical(self):
+        with tempfile.TemporaryDirectory() as d:
+            home = Path(d)
+            src = self._source(home)
+            agents = ateam.claude_home(home) / "agents"
+            agents.mkdir(parents=True)
+            (agents / "agent-a.md").write_text("agent\n", encoding="utf-8")
+            result = ateam.apply_ateam(src, home, stamp="STAMP")
+            self.assertEqual(len(result.unchanged), 1)
+            self.assertFalse((agents / "agent-a.md.projectpilot-new").exists())
+
+
 if __name__ == "__main__":
     unittest.main()
