@@ -57,7 +57,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_analyze = subparsers.add_parser(
         "analyze", help="Inspect the project stack/state and suggest the next action."
     )
-    p_analyze.add_argument("--dir", default=".", help="Project directory (default: current).")
+    p_analyze.add_argument(
+        "path",
+        nargs="?",
+        default=None,
+        help="Project directory (positional alias for --dir; default: current).",
+    )
+    p_analyze.add_argument(
+        "--dir",
+        default=None,
+        help="Project directory (default: current). Cannot be combined with the positional path.",
+    )
 
     p_setup = subparsers.add_parser(
         "setup", help="A-team setup: diagnose (default) or install (--apply)."

@@ -5,6 +5,14 @@ local baselines and are not published.
 
 ## [Unreleased]
 
+### Changed — `pp analyze` UX
+
+- **`pp analyze` now accepts an optional positional directory** as an alias for `--dir`, so
+  `pp analyze .` and `pp analyze path/to/project` work. `pp analyze` (current directory) and
+  `pp analyze --dir <path>` are unchanged. Supplying both the positional path and `--dir` fails
+  cleanly with `Use either positional path or --dir, not both.` (exit code 2). Read-only behaviour
+  is unchanged.
+
 ### Added — A-team installation (opt-in)
 
 - **`pp setup ateam --apply`** — installs the A-team into `~/.claude`, additively and

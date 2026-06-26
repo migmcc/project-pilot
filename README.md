@@ -46,6 +46,7 @@ python -m projectpilot status                       # read-only
 # Environment diagnostics (read-only / dry-run; change nothing)
 python -m projectpilot doctor                        # Python/Git/repo + ~/.claude + A-team signals
 python -m projectpilot analyze                       # detect stack/state, suggest next action
+python -m projectpilot analyze path/to/project       # positional path (alias for --dir)
 python -m projectpilot setup ateam                   # dry-run plan for installing the A-team
 python -m projectpilot setup ateam --apply           # install into ~/.claude (backs up first)
 

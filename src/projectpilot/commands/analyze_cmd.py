@@ -10,8 +10,26 @@ from .. import detectors
 from ..state import state_exists
 
 
+def _resolve_dir(args) -> str | None:
+    """Resolve the target directory from the optional positional and ``--dir``.
+
+    Both default to ``None``. Supplying both is a usage error; supplying
+    neither falls back to the current directory.
+    """
+    positional = getattr(args, "path", None)
+    dir_opt = getattr(args, "dir", None)
+    if positional is not None and dir_opt is not None:
+        return None
+    return positional or dir_opt or "."
+
+
 def run_analyze(args) -> int:
-    base = Path(args.dir)
+    target = _resolve_dir(args)
+    if target is None:
+        print("Use either positional path or --dir, not both.")
+        return 2
+
+    base = Path(target)
     report = detectors.detect_stack(base)
     initialized = state_exists(base)
 
