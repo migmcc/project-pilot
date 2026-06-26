@@ -11,14 +11,17 @@ import argparse
 from typing import Sequence
 
 from .commands.advance_cmd import run_advance
+from .commands.analyze_cmd import run_analyze
 from .commands.brief_cmd import run_brief_import
 from .commands.check_ateam_cmd import run_check_ateam
 from .commands.decision_cmd import run_decision_set
+from .commands.doctor_cmd import run_doctor
 from .commands.done_cmd import run_done_approve
 from .commands.execution_cmd import run_execution_approve
 from .commands.final_validation_cmd import run_final_validation_prepare
 from .commands.init_cmd import run_init
 from .commands.setup_advice_cmd import run_advise_setup
+from .commands.setup_cmd import run_setup_ateam
 from .commands.status_cmd import run_status
 from .commands.validate_cmd import run_validate
 from .state import Clock, utc_now_iso
@@ -44,6 +47,26 @@ def build_parser() -> argparse.ArgumentParser:
         "status", help="Show the current phase and next action (read-only)."
     )
     p_status.add_argument("--dir", default=".", help="Project directory (default: current).")
+
+    p_doctor = subparsers.add_parser(
+        "doctor", help="Report on the local environment (read-only; changes nothing)."
+    )
+    p_doctor.add_argument("--dir", default=".", help="Project directory (default: current).")
+    p_doctor.add_argument("--home", default=None, help=argparse.SUPPRESS)
+
+    p_analyze = subparsers.add_parser(
+        "analyze", help="Inspect the project stack/state and suggest the next action."
+    )
+    p_analyze.add_argument("--dir", default=".", help="Project directory (default: current).")
+
+    p_setup = subparsers.add_parser(
+        "setup", help="Diagnostic setup helpers (dry-run; changes nothing in v0.1)."
+    )
+    setup_subparsers = p_setup.add_subparsers(dest="setup_command", required=True)
+    p_setup_ateam = setup_subparsers.add_parser(
+        "ateam", help="Dry-run plan for installing the A-team into ~/.claude."
+    )
+    p_setup_ateam.add_argument("--home", default=None, help=argparse.SUPPRESS)
 
     p_validate = subparsers.add_parser(
         "validate", help="Run internal pre-checks and emit the SkillLab prompt."
@@ -152,6 +175,12 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
         return run_init(args, clock=clock)
     if args.command == "status":
         return run_status(args)
+    if args.command == "doctor":
+        return run_doctor(args)
+    if args.command == "analyze":
+        return run_analyze(args)
+    if args.command == "setup" and args.setup_command == "ateam":
+        return run_setup_ateam(args)
     if args.command == "validate":
         return run_validate(args, clock=clock)
     if args.command == "decision" and args.decision_command == "set":

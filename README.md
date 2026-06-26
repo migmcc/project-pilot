@@ -43,6 +43,11 @@ pp --help
 python -m projectpilot init "my project idea" --name "My Project"
 python -m projectpilot status                       # read-only
 
+# Environment diagnostics (read-only / dry-run; change nothing)
+python -m projectpilot doctor                        # Python/Git/repo + ~/.claude + A-team signals
+python -m projectpilot analyze                       # detect stack/state, suggest next action
+python -m projectpilot setup ateam                   # dry-run plan for installing the A-team
+
 # Validation gate (SkillLab owns the decision)
 python -m projectpilot validate                     # emits the /skilllab-start-project prompt
 python -m projectpilot decision set APPROVED --reason "..."   # records only; does NOT advance

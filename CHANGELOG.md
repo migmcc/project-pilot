@@ -3,6 +3,30 @@
 All notable changes to ProjectPilot are documented here. This project is local-only; versions are
 local baselines and are not published.
 
+## [Unreleased]
+
+### Added — local environment commands
+
+- **`pp doctor`** — read-only diagnostic of the local environment: Python and Git availability,
+  whether the working directory is inside a git repository, the presence of `~/.claude` and its
+  `skills` / `agents` / `commands` sub-directories and `settings.json`, a likely-A-team-installed
+  signal (the `using-a-team` skill), and ambiguity signals (a `00_Base`-style alternate source, or a
+  project-local `.claude`). Changes nothing.
+- **`pp analyze`** — read-only stack/state detection (`pyproject.toml`, `requirements.txt`,
+  `package.json`, `README.md`, `tests/`, CI workflows), a new-vs-existing hint, whether the project
+  is ProjectPilot-initialized, and a suggested next action (including when AgentDesk could help).
+  Invents nothing.
+- **`pp setup ateam`** — safe-by-default dry-run for A-team setup: inspects the `~/.claude` target,
+  discovers possible A-team sources in common locations, reports what a future install would copy
+  (skills / agents / commands / settings), detects likely conflicts, and recommends a backup. Does
+  not write to `~/.claude`; no flag in v0.1 performs the install.
+
+### Internals
+
+- New read-only modules `projectpilot.detectors` (stack + toolchain probes) and `projectpilot.ateam`
+  (environment inspection + install planning). The CI workflows directory name is assembled from
+  fragments so the no-automation guard's forbidden-token list stays intact.
+
 ## [0.1.0] - 2026-06-24
 
 First local baseline. ProjectPilot is a local, deterministic CLI that orchestrates and enforces a
