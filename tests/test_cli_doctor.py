@@ -39,6 +39,30 @@ class DoctorTests(unittest.TestCase):
                 main(["doctor", "--dir", d, "--home", home])
             self.assertIn("00_Base", out.getvalue())
 
+    def test_doctor_reports_partial_superpowers_install(self):
+        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as d:
+            root = Path(home) / ".claude"
+            skill = root / "skills" / "using-superpowers"
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text("name: using-superpowers\n", encoding="utf-8")
+            (root / "agents").mkdir()
+            (root / "commands").mkdir()
+
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc = main(["doctor", "--dir", d, "--home", home])
+
+            text = out.getvalue()
+            self.assertEqual(rc, 0)
+            self.assertIn("Claude global directory: yes", text)
+            self.assertIn("Claude global skills: yes", text)
+            self.assertIn("Global skills count: 1", text)
+            self.assertIn("Superpowers skills detected: yes", text)
+            self.assertIn("A-team full install: no", text)
+            self.assertIn("A-team install status: partial", text)
+            self.assertIn("Missing categories: agents, commands", text)
+            self.assertFalse((Path(home) / ".project-pilot").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

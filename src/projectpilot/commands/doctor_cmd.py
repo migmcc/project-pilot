@@ -10,6 +10,10 @@ def _mark(ok: bool) -> str:
     return "OK" if ok else "MISSING"
 
 
+def _yes_no(ok: bool) -> str:
+    return "yes" if ok else "no"
+
+
 def run_doctor(args) -> int:
     base = Path(args.dir)
     home = Path(args.home) if getattr(args, "home", None) else Path.home()
@@ -32,11 +36,20 @@ def run_doctor(args) -> int:
     lines.append("")
     lines.append(f"Claude home ({env.root}):")
     lines.append(f"- ~/.claude: {_mark(env.root_exists)}")
+    lines.append(f"- Claude global directory: {_yes_no(env.root_exists)}")
+    lines.append(f"- Claude global skills: {_yes_no(env.category_status['skills'] == 'present')}")
+    lines.append(f"- Global skills count: {env.global_skills_count}")
     for category in ateam.ATEAM_CATEGORIES:
-        lines.append(f"- ~/.claude/{category}: {_mark(env.categories[category])}")
+        count = env.category_counts[category]
+        detail = f" ({count} item(s))" if count else ""
+        lines.append(f"- ~/.claude/{category}: {env.category_status[category]}{detail}")
     lines.append(f"- ~/.claude/settings.json: {_mark(env.settings_json)}")
-    signal = f" (signal: {ateam.ATEAM_SIGNAL_SKILL})" if env.ateam_signal else ""
-    lines.append(f"- A-team install (likely): {'yes' if env.ateam_likely else 'no'}{signal}")
+    lines.append(f"- Superpowers skills detected: {_yes_no(env.superpowers_detected)}")
+    lines.append(f"- A-team signal ({ateam.ATEAM_SIGNAL_SKILL}): {_yes_no(env.ateam_signal)}")
+    lines.append(f"- A-team full install: {_yes_no(env.ateam_full_install)}")
+    lines.append(f"- A-team install status: {env.install_status}")
+    missing = ", ".join(env.missing_categories) if env.missing_categories else "none"
+    lines.append(f"- Missing categories: {missing}")
 
     # Ambiguity signals
     sources = ateam.discover_sources(home)

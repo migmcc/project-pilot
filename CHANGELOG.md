@@ -5,6 +5,14 @@ local baselines and are not published.
 
 ## [Unreleased]
 
+### Changed — Claude/A-team diagnostics
+
+- **`pp doctor` and `pp setup ateam` now distinguish partial and complete Claude/A-team setups.**
+  They report global Claude directory presence, global skills presence/count, Superpowers detection,
+  full A-team install status, and missing/empty categories instead of collapsing the result into a
+  single likely-installed boolean. Global skills can be valid without `agents` / `commands`, and
+  Superpowers (`using-superpowers`) is reported separately from a complete A-team install.
+
 ### Changed — `pp analyze` UX
 
 - **`pp analyze` now accepts an optional positional directory** as an alias for `--dir`, so

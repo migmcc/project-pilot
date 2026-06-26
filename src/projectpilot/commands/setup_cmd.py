@@ -33,11 +33,16 @@ def _run_dry_run(home: Path) -> int:
     lines.append(f"Target: {env.root}")
     lines.append(f"- exists: {'yes' if env.root_exists else 'no'}")
     for category in ateam.ATEAM_CATEGORIES:
-        present = "present" if env.categories[category] else "absent"
-        lines.append(f"- {category}: {present}")
+        count = env.category_counts[category]
+        detail = f" ({count} item(s))" if count else ""
+        lines.append(f"- {category}: {env.category_status[category]}{detail}")
     settings = "present" if env.settings_json else "absent"
     lines.append(f"- settings.json (hooks/settings): {settings}")
-    lines.append(f"- A-team already installed (likely): {'yes' if env.ateam_likely else 'no'}")
+    lines.append(f"- Superpowers skills detected: {'yes' if env.superpowers_detected else 'no'}")
+    lines.append(f"- A-team full install: {'yes' if env.ateam_full_install else 'no'}")
+    lines.append(f"- A-team install status: {env.install_status}")
+    missing = ", ".join(env.missing_categories) if env.missing_categories else "none"
+    lines.append(f"- Missing categories: {missing}")
     lines.append("")
 
     sources = ateam.discover_sources(home)

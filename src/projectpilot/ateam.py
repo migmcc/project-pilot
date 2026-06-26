@@ -27,6 +27,10 @@ ATEAM_CATEGORIES = ("skills", "agents", "commands")
 #: Strongest deterministic signal that the A-team is installed: the meta-skill.
 ATEAM_SIGNAL_SKILL = "using-a-team"
 
+#: Superpowers is a valid global skills set, but it is not the same thing as a
+#: complete A-team install.
+SUPERPOWERS_SIGNAL_SKILL = "using-superpowers"
+
 #: Where a copyable A-team source might live, expressed relative to ``$HOME``.
 #: ``00_Base`` is the user's known base template. The ``.claude`` directly under
 #: home is the *target*, not a source, and is handled separately by inspect_env.
@@ -51,6 +55,30 @@ def _count_entries(path: Path) -> int:
     return sum(1 for _ in path.iterdir())
 
 
+def _category_status(path: Path) -> str:
+    if not path.is_dir():
+        return "missing"
+    if _count_entries(path) == 0:
+        return "empty"
+    return "present"
+
+
+def _detect_skill(skills_dir: Path, name: str) -> bool:
+    if not skills_dir.is_dir():
+        return False
+    if (skills_dir / name).exists():
+        return True
+    for marker in (skills_dir / "SKILL.md", skills_dir / name / "SKILL.md"):
+        if not marker.is_file():
+            continue
+        try:
+            if name in marker.read_text(encoding="utf-8"):
+                return True
+        except OSError:
+            continue
+    return False
+
+
 def looks_like_claude_dir(path: Path) -> bool:
     """True if ``path`` has at least one A-team category sub-directory."""
     path = Path(path)
@@ -63,9 +91,16 @@ class ClaudeEnv:
     root: Path
     root_exists: bool
     categories: dict[str, bool]   # category -> directory present
+    category_counts: dict[str, int]
+    category_status: dict[str, str]  # category -> missing|empty|present
+    global_skills_count: int
     settings_json: bool
     ateam_signal: bool            # the using-a-team skill is present
-    ateam_likely: bool            # signal, or every category is populated
+    superpowers_detected: bool    # the using-superpowers skill/content is present
+    ateam_full_install: bool      # every A-team category has content
+    install_status: str           # not installed|partial|complete
+    missing_categories: list[str]
+    ateam_likely: bool            # legacy alias for ateam_full_install
 
 
 def inspect_env(home: Path) -> ClaudeEnv:
@@ -73,16 +108,34 @@ def inspect_env(home: Path) -> ClaudeEnv:
     home = Path(home)
     root = claude_home(home)
     categories = {c: (root / c).is_dir() for c in ATEAM_CATEGORIES}
-    signal = (root / "skills" / ATEAM_SIGNAL_SKILL).exists()
-    populated = all(_nonempty_dir(root / c) for c in ATEAM_CATEGORIES)
+    category_counts = {c: _count_entries(root / c) for c in ATEAM_CATEGORIES}
+    category_status = {c: _category_status(root / c) for c in ATEAM_CATEGORIES}
+    signal = _detect_skill(root / "skills", ATEAM_SIGNAL_SKILL)
+    superpowers = _detect_skill(root / "skills", SUPERPOWERS_SIGNAL_SKILL)
+    populated = all(category_status[c] == "present" for c in ATEAM_CATEGORIES)
+    present = [c for c in ATEAM_CATEGORIES if category_status[c] == "present"]
+    if populated:
+        install_status = "complete"
+    elif present:
+        install_status = "partial"
+    else:
+        install_status = "not installed"
+    missing_categories = [c for c in ATEAM_CATEGORIES if category_status[c] != "present"]
     return ClaudeEnv(
         home=home,
         root=root,
         root_exists=root.exists(),
         categories=categories,
+        category_counts=category_counts,
+        category_status=category_status,
+        global_skills_count=category_counts["skills"],
         settings_json=(root / "settings.json").is_file(),
         ateam_signal=signal,
-        ateam_likely=signal or populated,
+        superpowers_detected=superpowers,
+        ateam_full_install=populated,
+        install_status=install_status,
+        missing_categories=missing_categories,
+        ateam_likely=populated,
     )
 
 

@@ -44,7 +44,7 @@ python -m projectpilot init "my project idea" --name "My Project"
 python -m projectpilot status                       # read-only
 
 # Environment diagnostics (read-only / dry-run; change nothing)
-python -m projectpilot doctor                        # Python/Git/repo + ~/.claude + A-team signals
+python -m projectpilot doctor                        # Python/Git/repo + ~/.claude install status
 python -m projectpilot analyze                       # detect stack/state, suggest next action
 python -m projectpilot analyze path/to/project       # positional path (alias for --dir)
 python -m projectpilot setup ateam                   # dry-run plan for installing the A-team
@@ -92,6 +92,11 @@ State is stored in `.project-pilot/status.json`.
 
 The real A-team install therefore stays under your explicit control: nothing reaches `~/.claude`
 without `--apply`, and nothing is ever deleted or overwritten.
+
+`pp doctor` and the dry-run form of `pp setup ateam` distinguish a partial global Claude setup from
+a complete A-team install. Global `skills` can be present and valid even when `agents` or `commands`
+are missing or empty. Superpowers skills such as `using-superpowers` are reported explicitly, but
+they are not treated as proof of a full A-team install.
 
 ## Transition policy
 

@@ -61,6 +61,28 @@ class DryRunTests(unittest.TestCase):
             _, text = _run(["setup", "ateam", "--home", home])
             self.assertIn("--apply", text)
 
+    def test_dry_run_reports_partial_superpowers_without_writing(self):
+        with tempfile.TemporaryDirectory() as home:
+            home_path = Path(home)
+            root = home_path / ".claude"
+            skill = root / "skills" / "using-superpowers"
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text("name: using-superpowers\n", encoding="utf-8")
+            (root / "agents").mkdir()
+            (root / "commands").mkdir()
+
+            rc, text = _run(["setup", "ateam", "--home", home])
+
+            self.assertEqual(rc, 0)
+            self.assertIn("dry-run", text)
+            self.assertIn("skills: present", text)
+            self.assertIn("agents: empty", text)
+            self.assertIn("commands: empty", text)
+            self.assertIn("Superpowers skills detected: yes", text)
+            self.assertIn("A-team full install: no", text)
+            self.assertIn("A-team install status: partial", text)
+            self.assertTrue((skill / "SKILL.md").is_file())
+
 
 class ApplyTests(unittest.TestCase):
     def test_apply_creates_claude_and_categories(self):

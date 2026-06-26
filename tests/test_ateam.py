@@ -22,25 +22,70 @@ class InspectEnvTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             env = ateam.inspect_env(Path(d))
             self.assertFalse(env.root_exists)
-            self.assertFalse(env.ateam_likely)
             self.assertFalse(any(env.categories.values()))
+            self.assertEqual(env.category_status["skills"], "missing")
+            self.assertEqual(env.category_status["agents"], "missing")
+            self.assertEqual(env.category_status["commands"], "missing")
+            self.assertEqual(env.install_status, "not installed")
+            self.assertFalse(env.ateam_full_install)
+            self.assertEqual(env.missing_categories, ["skills", "agents", "commands"])
 
-    def test_signal_marks_ateam_likely(self):
+    def test_empty_claude_dir_is_not_installed(self):
+        with tempfile.TemporaryDirectory() as d:
+            home = Path(d)
+            ateam.claude_home(home).mkdir()
+            env = ateam.inspect_env(home)
+            self.assertTrue(env.root_exists)
+            self.assertEqual(env.category_status["skills"], "missing")
+            self.assertEqual(env.install_status, "not installed")
+            self.assertFalse(env.ateam_full_install)
+
+    def test_skills_without_agents_or_commands_is_partial(self):
+        with tempfile.TemporaryDirectory() as d:
+            home = Path(d)
+            root = ateam.claude_home(home)
+            _make_claude(root, categories=("skills",))
+            (root / "agents").mkdir()
+            (root / "commands").mkdir()
+            env = ateam.inspect_env(home)
+            self.assertEqual(env.category_status["skills"], "present")
+            self.assertEqual(env.category_status["agents"], "empty")
+            self.assertEqual(env.category_status["commands"], "empty")
+            self.assertEqual(env.global_skills_count, 1)
+            self.assertEqual(env.install_status, "partial")
+            self.assertFalse(env.ateam_full_install)
+            self.assertEqual(env.missing_categories, ["agents", "commands"])
+
+    def test_using_superpowers_is_detected_without_marking_ateam_complete(self):
+        with tempfile.TemporaryDirectory() as d:
+            home = Path(d)
+            skill = ateam.claude_home(home) / "skills" / "using-superpowers"
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text("name: using-superpowers\n", encoding="utf-8")
+            env = ateam.inspect_env(home)
+            self.assertTrue(env.root_exists)
+            self.assertTrue(env.superpowers_detected)
+            self.assertFalse(env.ateam_full_install)
+            self.assertEqual(env.install_status, "partial")
+
+    def test_using_a_team_signal_does_not_override_missing_categories(self):
         with tempfile.TemporaryDirectory() as d:
             home = Path(d)
             _make_claude(ateam.claude_home(home), categories=("skills",), signal=True)
             env = ateam.inspect_env(home)
-            self.assertTrue(env.root_exists)
             self.assertTrue(env.ateam_signal)
-            self.assertTrue(env.ateam_likely)
+            self.assertFalse(env.ateam_full_install)
+            self.assertEqual(env.install_status, "partial")
 
-    def test_fully_populated_marks_likely_without_signal(self):
+    def test_fully_populated_marks_complete_without_signal(self):
         with tempfile.TemporaryDirectory() as d:
             home = Path(d)
             _make_claude(ateam.claude_home(home), categories=ateam.ATEAM_CATEGORIES)
             env = ateam.inspect_env(home)
             self.assertFalse(env.ateam_signal)
-            self.assertTrue(env.ateam_likely)
+            self.assertTrue(env.ateam_full_install)
+            self.assertEqual(env.install_status, "complete")
+            self.assertEqual(env.missing_categories, [])
 
 
 class DiscoverSourcesTests(unittest.TestCase):
