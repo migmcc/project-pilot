@@ -33,6 +33,30 @@ class AnalyzeTests(unittest.TestCase):
             self.assertIn("Tests detected: yes", text)
             self.assertIn("existing", text)
 
+    def test_analyze_does_not_call_empty_git_valid(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / ".git").mkdir()
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc = main(["analyze", "--dir", d])
+            text = out.getvalue()
+            self.assertEqual(rc, 0)
+            self.assertNotIn("Git repository: OK", text)
+            self.assertIn("Git repository: invalid", text)
+
+    def test_analyze_reports_valid_git_ok(self):
+        with tempfile.TemporaryDirectory() as d:
+            git = Path(d) / ".git"
+            git.mkdir()
+            (git / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
+            (git / "objects").mkdir()
+            (git / "refs").mkdir()
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc = main(["analyze", "--dir", d])
+            self.assertEqual(rc, 0)
+            self.assertIn("Git repository: OK", out.getvalue())
+
     def test_analyze_is_read_only(self):
         with tempfile.TemporaryDirectory() as d:
             with contextlib.redirect_stdout(io.StringIO()):

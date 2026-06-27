@@ -25,11 +25,13 @@ def run_doctor(args) -> int:
     lines.append("Toolchain:")
     lines.append(f"- Python: OK ({py['version']})")
     lines.append(f"- Git: {_mark(detectors.git_available())}")
-    repo_root = detectors.find_git_root(base)
-    if repo_root is not None:
-        lines.append(f"- Git repository: OK ({repo_root})")
+    git = detectors.git_repo_status(base)
+    if git.status == detectors.GIT_OK:
+        lines.append(f"- Git repository: OK ({git.root})")
+    elif git.status == detectors.GIT_INVALID:
+        lines.append(f"- Git repository: invalid ({git.detail})")
     else:
-        lines.append("- Git repository: not inside a git repository")
+        lines.append("- Git repository: missing (not inside a git repository)")
 
     # Global Claude / A-team environment
     env = ateam.inspect_env(home)

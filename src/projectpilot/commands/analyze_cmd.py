@@ -48,6 +48,14 @@ def run_analyze(args) -> int:
     lines.append(f"CI detected: {'yes' if report.has_ci else 'no'}")
     lines.append(f"README detected: {'yes' if report.has_readme else 'no'}")
 
+    git = detectors.git_repo_status(base)
+    if git.status == detectors.GIT_OK:
+        lines.append("Git repository: OK")
+    elif git.status == detectors.GIT_INVALID:
+        lines.append(f"Git repository: invalid ({git.detail})")
+    else:
+        lines.append("Git repository: missing")
+
     kind = "new (little to build on yet)" if report.looks_new else "existing"
     lines.append("")
     lines.append(f"Project appears: {kind}")

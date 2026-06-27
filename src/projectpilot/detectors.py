@@ -105,7 +105,12 @@ def git_available() -> bool:
 
 
 def find_git_root(base: Path) -> Path | None:
-    """Return the nearest ancestor of ``base`` that contains ``.git``, or None."""
+    """Return the nearest ancestor of ``base`` that contains ``.git``, or None.
+
+    This only locates the ``.git`` marker; it does not judge whether the
+    repository is healthy. Use :func:`git_repo_status` to distinguish a valid
+    repository from an empty or corrupt ``.git``.
+    """
     base = Path(base).resolve()
     for candidate in (base, *base.parents):
         if (candidate / ".git").exists():
@@ -115,3 +120,112 @@ def find_git_root(base: Path) -> Path | None:
 
 def in_git_repo(base: Path) -> bool:
     return find_git_root(base) is not None
+
+
+# Git repository classification values.
+GIT_MISSING = "missing"
+GIT_OK = "ok"
+GIT_INVALID = "invalid"
+
+
+@dataclass
+class GitRepoStatus:
+    """Outcome of classifying a directory's ``.git`` marker.
+
+    ``status`` is one of :data:`GIT_MISSING`, :data:`GIT_OK`, or
+    :data:`GIT_INVALID`. ``root`` is the directory holding the ``.git`` marker
+    when one was found (regardless of validity), else ``None``. ``detail`` is a
+    short human-readable explanation suitable for diagnostic output.
+    """
+
+    status: str
+    root: Path | None
+    detail: str
+
+    @property
+    def ok(self) -> bool:
+        return self.status == GIT_OK
+
+
+def _is_valid_git_dir(git_dir: Path) -> bool:
+    """True if ``git_dir`` has the minimum structure of a real git directory.
+
+    A healthy git directory has a ``HEAD`` file plus ``objects/`` and ``refs/``
+    directories. Linked worktrees keep ``objects`` and ``refs`` in the shared
+    common directory, which ``commondir`` points to, so we follow it when
+    present. Read-only: this only stats and reads small text files.
+    """
+    if not git_dir.is_dir():
+        return False
+    if not (git_dir / "HEAD").is_file():
+        return False
+
+    common = git_dir
+    commondir_file = git_dir / "commondir"
+    if commondir_file.is_file():
+        try:
+            rel = commondir_file.read_text(encoding="utf-8").strip()
+        except OSError:
+            return False
+        if rel:
+            common = (git_dir / rel).resolve()
+
+    return (common / "objects").is_dir() and (common / "refs").is_dir()
+
+
+def _resolve_gitdir_file(marker: Path) -> Path | None:
+    """Resolve a ``.git`` *file* of the form ``gitdir: <path>`` to its target.
+
+    Submodules and linked worktrees use a ``.git`` file pointing at the real
+    git directory. Returns the resolved target path, or ``None`` if the file is
+    unreadable or does not contain a ``gitdir:`` line. The target is not
+    validated here; the caller decides. Read-only.
+    """
+    try:
+        content = marker.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    for line in content.splitlines():
+        line = line.strip()
+        if line.startswith("gitdir:"):
+            target = line[len("gitdir:"):].strip()
+            if not target:
+                return None
+            return (marker.parent / target).resolve()
+    return None
+
+
+def git_repo_status(base: Path) -> GitRepoStatus:
+    """Classify the git repository state at ``base`` (or its nearest ancestor).
+
+    Walks ``base`` and its parents looking for a ``.git`` marker and stops at
+    the first one found -- mirroring how git discovery commits to the nearest
+    ``.git`` rather than skipping a broken one to reach a healthy parent. The
+    marker may be:
+
+    * a directory -- valid only if it has ``HEAD`` plus ``objects/`` and
+      ``refs/`` (see :func:`_is_valid_git_dir`);
+    * a file of the form ``gitdir: <path>`` -- valid only if that target is a
+      valid git directory.
+
+    Returns a :class:`GitRepoStatus`. Read-only; never spawns git.
+    """
+    base = Path(base).resolve()
+    for candidate in (base, *base.parents):
+        marker = candidate / ".git"
+        if marker.is_dir():
+            if _is_valid_git_dir(marker):
+                return GitRepoStatus(GIT_OK, candidate, str(candidate))
+            return GitRepoStatus(
+                GIT_INVALID, candidate, ".git exists but is incomplete"
+            )
+        if marker.is_file():
+            target = _resolve_gitdir_file(marker)
+            if target is not None and _is_valid_git_dir(target):
+                return GitRepoStatus(GIT_OK, candidate, f"{candidate} -> {target}")
+            return GitRepoStatus(
+                GIT_INVALID,
+                candidate,
+                ".git file does not point to a valid git directory",
+            )
+    return GitRepoStatus(GIT_MISSING, None, "not inside a git repository")

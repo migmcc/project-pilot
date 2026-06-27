@@ -39,6 +39,38 @@ class DoctorTests(unittest.TestCase):
                 main(["doctor", "--dir", d, "--home", home])
             self.assertIn("00_Base", out.getvalue())
 
+    def test_doctor_does_not_report_ok_for_empty_git(self):
+        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as d:
+            (Path(d) / ".git").mkdir()
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc = main(["doctor", "--dir", d, "--home", home])
+            text = out.getvalue()
+            self.assertEqual(rc, 0)
+            self.assertNotIn("Git repository: OK", text)
+            self.assertIn("Git repository: invalid", text)
+
+    def test_doctor_reports_valid_git_as_ok(self):
+        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as d:
+            git = Path(d) / ".git"
+            git.mkdir()
+            (git / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
+            (git / "objects").mkdir()
+            (git / "refs").mkdir()
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc = main(["doctor", "--dir", d, "--home", home])
+            self.assertEqual(rc, 0)
+            self.assertIn("Git repository: OK", out.getvalue())
+
+    def test_doctor_reports_missing_git(self):
+        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as d:
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc = main(["doctor", "--dir", d, "--home", home])
+            self.assertEqual(rc, 0)
+            self.assertIn("Git repository: missing", out.getvalue())
+
     def test_doctor_reports_partial_superpowers_install(self):
         with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as d:
             root = Path(home) / ".claude"

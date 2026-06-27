@@ -3,6 +3,20 @@
 All notable changes to ProjectPilot are documented here. This project is local-only; versions are
 local baselines and are not published.
 
+## [Unreleased]
+
+### Fixed
+- **Git repository detection** — `pp doctor` and `pp analyze` no longer report `Git repository: OK`
+  when only an empty or corrupt `.git` exists. Detection now distinguishes `missing` (no `.git`),
+  `OK` (valid `.git` directory with `HEAD`, `objects/`, and `refs/`), and `invalid` (a `.git` that
+  exists but is incomplete). A `.git` *file* of the form `gitdir: <path>` (submodules and linked
+  worktrees, including the `commondir` indirection) is resolved and validated against its target.
+  Still stdlib-only and read-only — no subprocess, no `git` invocation.
+
+### Added
+- `detectors.git_repo_status()` returning a `GitRepoStatus` (`status` / `root` / `detail`), plus the
+  `GIT_MISSING` / `GIT_OK` / `GIT_INVALID` constants. `pp analyze` now prints a `Git repository:` line.
+
 ## [0.2.0] - 2026-06-24
 
 Local v0.2 baseline: agent-driven **autopilot** on top of the v0.1 lifecycle, plus richer local
