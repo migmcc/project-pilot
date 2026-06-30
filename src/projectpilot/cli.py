@@ -8,6 +8,7 @@ transition; commands that *complete* a phase's gate may advance the phase
 from __future__ import annotations
 
 import argparse
+import sys
 from typing import Sequence
 
 from .commands.advance_cmd import run_advance
@@ -27,6 +28,7 @@ from .commands.setup_cmd import run_setup_ateam
 from .commands.skill_cmd import (
     run_skill_info,
     run_skill_list,
+    run_skill_recommend,
     run_skill_run,
     run_skill_sources,
 )
@@ -266,10 +268,43 @@ def build_parser() -> argparse.ArgumentParser:
     )
     s_run.add_argument("--dir", default=".", help="Project directory (default: current).")
 
+    s_recommend = skill_subparsers.add_parser(
+        "recommend",
+        help="Suggest skills relevant to the current lifecycle phase (no LLM).",
+    )
+    s_recommend.add_argument(
+        "--limit",
+        type=int,
+        default=10,
+        help="Maximum number of recommendations to show (default: 10; 0 for all).",
+    )
+    s_recommend.add_argument("--dir", default=".", help="Project directory (default: current).")
+
     return parser
 
 
+def _make_output_resilient() -> None:
+    """Make stdout/stderr tolerate content the console encoding can't represent.
+
+    External skill libraries may contain arbitrary Unicode (emoji, symbols) that a
+    legacy console (e.g. Windows ``cp1252``) cannot encode, which would otherwise
+    raise ``UnicodeEncodeError`` mid-print. Switching the error handler to
+    ``replace`` keeps the console's own encoding but degrades unencodable
+    characters instead of crashing. Guarded: streams without ``reconfigure``
+    (such as the ``StringIO`` used in tests) are left untouched.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(errors="replace")
+        except (ValueError, OSError):  # pragma: no cover - stream already detached
+            pass
+
+
 def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> int:
+    _make_output_resilient()
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.command == "init":
@@ -315,5 +350,7 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
             return run_skill_info(args)
         if args.skill_command == "run":
             return run_skill_run(args)
+        if args.skill_command == "recommend":
+            return run_skill_recommend(args)
     parser.error(f"unknown command: {args.command!r}")  # pragma: no cover
     return 2  # pragma: no cover

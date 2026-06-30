@@ -73,6 +73,7 @@ python -m projectpilot skill list                    # list skills found in thos
 python -m projectpilot skill info <skill-id>         # show one skill's details
 python -m projectpilot skill run <skill-id>          # prepare a skill as reusable context
 python -m projectpilot skill run <skill-id> --print  # print it instead of writing a file
+python -m projectpilot skill recommend               # suggest skills for the current phase
 ```
 
 State is stored in `.project-pilot/status.json`.
@@ -139,6 +140,62 @@ It tolerates the common frontmatter shapes — quoted or unquoted scalars and `|
 
 Validated against a real clone of `phuryn/pm-skills` (9 plugin categories, 68 `SKILL.md` skills): all
 68 are discovered with stable, unique ids and no manual adaptation.
+
+### Skill recommendations (`pp skill recommend`)
+
+`pp skill recommend` suggests which discovered skills are most relevant to the project's **current
+lifecycle phase**. It only recommends — it never runs a skill — and, like the rest of `pp skill`, it
+**calls no LLM** and uses **no AI or embeddings**.
+
+```text
+$ pp skill recommend
+Current phase: Planning
+
+Recommended skills
+
+★★★★★ sprint-plan             [pm-skills]  Plan a sprint with capacity estimation, story selection…
+★★★★★ create-prd              [pm-skills]  Create a Product Requirements Document using an 8-section…
+★★★★★ pre-mortem              [pm-skills]  Run a pre-mortem risk analysis on a PRD or launch plan…
+★★★★☆ prioritize-features     [pm-skills]  Prioritize a backlog of feature ideas based on impact…
+★★★☆☆ stakeholder-map         [pm-skills]  Build a stakeholder map using a power/interest grid…
+```
+
+Each line shows a star rating, the skill id, its origin library, and a short description. Use
+`--limit N` to change how many are shown (default 10; `--limit 0` for all). On terminals that cannot
+render `★`/`☆` (e.g. a legacy Windows console) the stars degrade to `*`/`.` automatically.
+
+**How the ranking works.** The recommender is a separate layer from the scanner: the scanner only
+*discovers* skills, the recommender *decides which to suggest*. Each lifecycle phase has a list of
+keyword/category terms. A skill is scored by where those terms appear — in its id/name (strongest),
+its category/library folder, or its description (weakest) — and the score maps to a 1–5 star rating.
+Results are ordered by score, then by id, so the output is fully **deterministic** and stable.
+
+**Adding or changing rules.** Built-in rules cover all eight phases with generic product/engineering
+vocabulary (nothing is tied to a specific library). Override any phase's terms in
+`.project-pilot/config.yaml` with a `recommend_<phase>` list — the phase name is its lifecycle value:
+
+```yaml
+recommend_planning:
+  - prd
+  - roadmap
+  - risk
+  - prioritization
+recommend_execution:
+  - architecture
+  - review
+  - testing
+```
+
+The phase values are `idea`, `validation`, `brief`, `setup-advice`, `planning`, `execution`,
+`final-validation`, and `done`. A `recommend_<phase>` list replaces that phase's defaults; phases you
+don't override keep theirs.
+
+**Why other libraries benefit automatically.** Because the rules are plain keyword/category terms and
+scoring runs against the generic `name` / `description` / category fields every skill already exposes,
+any external library is rankable with no per-library code. Point `external_skill_paths` at a different
+library and `pp skill recommend` works against it immediately. The ranking core (`recommend.rank`) is
+a single pure function, so it can later be swapped for a smarter ranker without touching the scanner,
+the commands, or the configuration.
 
 ## Installing the A-team (`pp setup ateam`)
 

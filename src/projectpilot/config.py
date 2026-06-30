@@ -149,3 +149,21 @@ def load_config(base: Path) -> Config:
     except OSError:
         return Config()
     return parse_config(text)
+
+
+def load_mapping(base: Path) -> dict[str, object]:
+    """Return the full parsed config as a plain dict (tolerant; never raises).
+
+    This is the generic, key-agnostic view of the config file. It lets feature
+    modules read their own keys without :class:`Config` having to know about
+    them, keeping configuration decoupled from any particular feature. Returns an
+    empty dict when the file is absent or unreadable.
+    """
+    path = config_path(base)
+    if not path.is_file():
+        return {}
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return {}
+    return _parse(text)

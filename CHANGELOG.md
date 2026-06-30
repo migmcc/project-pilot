@@ -14,6 +14,16 @@ local baselines and are not published.
   Still stdlib-only and read-only — no subprocess, no `git` invocation.
 
 ### Added
+- **Skill recommendations (`pp skill recommend`)** — suggests which discovered skills are most
+  relevant to the project's current lifecycle phase. Recommend-only (never runs a skill), deterministic,
+  and **no AI / embeddings / LLM**. A new `recommend.py` layer is decoupled from the scanner: the
+  scanner discovers skills, the recommender ranks them. Each phase has generic keyword/category rules
+  (built-in defaults for all eight phases, overridable per phase via `recommend_<phase>` lists in
+  `.project-pilot/config.yaml`); a pure `rank()` core scores each skill by where the terms match
+  (id/name > category > description) and maps the score to a 1–5 star rating, ordered by score then id.
+  Any external library is rankable with no per-library code. Stars degrade to ASCII on terminals that
+  cannot encode `★`/`☆`, and CLI output now tolerates arbitrary Unicode in external content instead of
+  crashing on legacy consoles.
 - **External skills integration (`pp skill`)** — ProjectPilot can point at external libraries of
   skills (e.g. `phuryn/pm-skills`) and reuse their knowledge while keeping control of the project.
   Configure libraries via `external_skill_paths` in `.project-pilot/config.yaml`. New read-only
