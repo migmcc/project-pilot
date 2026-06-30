@@ -10,6 +10,9 @@ venv/
 # ProjectPilot state created in sample/scratch project dirs
 .project-pilot/
 
+# Rendered skill output (`pp skill run`)
+projectpilot_outputs/
+
 # OS / editor
 .DS_Store
 Thumbs.db

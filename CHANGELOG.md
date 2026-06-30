@@ -14,6 +14,19 @@ local baselines and are not published.
   Still stdlib-only and read-only — no subprocess, no `git` invocation.
 
 ### Added
+- **External skills integration (`pp skill`)** — ProjectPilot can point at external libraries of
+  skills (e.g. `phuryn/pm-skills`) and reuse their knowledge while keeping control of the project.
+  Configure libraries via `external_skill_paths` in `.project-pilot/config.yaml`. New read-only
+  subcommands: `pp skill sources` (show configured paths), `pp skill list` (discover skills),
+  `pp skill info <id>` (show details), and `pp skill run <id>` (render a skill into
+  `projectpilot_outputs/skills/<id>.md`, or stdout with `--print`). No LLM is ever called. The
+  adapter is generic — not hardcoded to PM Skills: it scans markdown, parses optional YAML
+  frontmatter, treats `SKILL.md` manifests as skills, and falls back to per-file skills (name from
+  the first heading or filename) when a library has no manifest. Still stdlib-only and side-effect
+  free apart from the explicit `pp skill run` output file.
+- `config.py` — a tolerant stdlib-only loader for `.project-pilot/config.yaml` (a small YAML subset:
+  scalars, block lists, and inline lists), plus the `skills.py` adaptation layer (`resolve_sources`,
+  `scan_skills`, `find_skill`, `render_skill`).
 - `detectors.git_repo_status()` returning a `GitRepoStatus` (`status` / `root` / `detail`), plus the
   `GIT_MISSING` / `GIT_OK` / `GIT_INVALID` constants. `pp analyze` now prints a `Git repository:` line.
 

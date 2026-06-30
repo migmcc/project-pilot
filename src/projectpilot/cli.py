@@ -24,6 +24,12 @@ from .commands.final_validation_cmd import run_final_validation_prepare
 from .commands.init_cmd import run_init
 from .commands.setup_advice_cmd import run_advise_setup
 from .commands.setup_cmd import run_setup_ateam
+from .commands.skill_cmd import (
+    run_skill_info,
+    run_skill_list,
+    run_skill_run,
+    run_skill_sources,
+)
 from .commands.start_cmd import run_start
 from .commands.status_cmd import run_status
 from .commands.validate_cmd import run_validate
@@ -228,6 +234,38 @@ def build_parser() -> argparse.ArgumentParser:
     a_done.add_argument("--reason", required=True, help="Closure reason.")
     a_done.add_argument("--dir", default=".", help="Project directory (default: current).")
 
+    p_skill = subparsers.add_parser(
+        "skill", help="Discover and use external libraries of skills (read-only)."
+    )
+    skill_subparsers = p_skill.add_subparsers(dest="skill_command", required=True)
+
+    s_sources = skill_subparsers.add_parser(
+        "sources", help="Show the configured external skill paths."
+    )
+    s_sources.add_argument("--dir", default=".", help="Project directory (default: current).")
+
+    s_list = skill_subparsers.add_parser(
+        "list", help="List skills discovered in the configured sources."
+    )
+    s_list.add_argument("--dir", default=".", help="Project directory (default: current).")
+
+    s_info = skill_subparsers.add_parser(
+        "info", help="Show details for one skill."
+    )
+    s_info.add_argument("skill_id", help="The skill id (see `pp skill list`).")
+    s_info.add_argument("--dir", default=".", help="Project directory (default: current).")
+
+    s_run = skill_subparsers.add_parser(
+        "run", help="Prepare a skill as reusable context (no LLM is called)."
+    )
+    s_run.add_argument("skill_id", help="The skill id (see `pp skill list`).")
+    s_run.add_argument(
+        "--print",
+        action="store_true",
+        help="Print the rendered skill to stdout instead of writing a file.",
+    )
+    s_run.add_argument("--dir", default=".", help="Project directory (default: current).")
+
     return parser
 
 
@@ -268,5 +306,14 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
         return run_done_approve(args, clock=clock)
     if args.command == "approve":
         return run_approve(args, clock=clock)
+    if args.command == "skill":
+        if args.skill_command == "sources":
+            return run_skill_sources(args)
+        if args.skill_command == "list":
+            return run_skill_list(args)
+        if args.skill_command == "info":
+            return run_skill_info(args)
+        if args.skill_command == "run":
+            return run_skill_run(args)
     parser.error(f"unknown command: {args.command!r}")  # pragma: no cover
     return 2  # pragma: no cover

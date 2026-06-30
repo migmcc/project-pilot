@@ -66,9 +66,79 @@ python -m projectpilot final-validation prepare
 
 # Done gate (manual closure; no release, tag, or push)
 python -m projectpilot done approve --reason "..."
+
+# External skills (read-only; no LLM is ever called)
+python -m projectpilot skill sources                 # show configured skill paths
+python -m projectpilot skill list                    # list skills found in those paths
+python -m projectpilot skill info <skill-id>         # show one skill's details
+python -m projectpilot skill run <skill-id>          # prepare a skill as reusable context
+python -m projectpilot skill run <skill-id> --print  # print it instead of writing a file
 ```
 
 State is stored in `.project-pilot/status.json`.
+
+## Using external skill libraries (`pp skill`)
+
+ProjectPilot can point at external libraries of skills — repositories of reusable product-management
+or engineering know-how — and surface them through the `pp skill` commands. **The library provides the
+knowledge; ProjectPilot keeps control of the project.** The integration is read-only and **never calls
+an LLM**.
+
+> **PM Skills is just one example library, not a required dependency.** ProjectPilot does not bundle,
+> vendor, or depend on [`phuryn/pm-skills`](https://github.com/phuryn/pm-skills) (or any other
+> library). Point it at whatever library you like — or none. Nothing in the adapter is hardcoded to a
+> particular repository.
+
+### 1. Clone a library (example: PM Skills)
+
+Clone any skill library next to your project. Using PM Skills as a worked example:
+
+```bash
+# from the parent directory of your project
+git clone https://github.com/phuryn/pm-skills.git ../pm-skills
+```
+
+ProjectPilot never modifies the cloned library — it only reads from it.
+
+### 2. Configure `external_skill_paths`
+
+List one or more library paths in `.project-pilot/config.yaml`. Relative paths resolve against the
+project directory; absolute paths work too. You can configure several libraries at once:
+
+```yaml
+external_skill_paths:
+  - ../pm-skills
+  - /absolute/path/to/another-skill-library
+```
+
+### 3. Discover and use skills
+
+```bash
+pp skill sources                 # show configured paths and whether each exists
+pp skill list                    # discover skills across every configured library
+pp skill info create-prd         # show a skill's name, description, kind, source, path
+pp skill run create-prd          # render the skill to projectpilot_outputs/skills/create-prd.md
+pp skill run create-prd --print  # print the rendered skill to stdout instead of writing a file
+```
+
+`pp skill run` consolidates a skill into a single, prompt-ready markdown document (a provenance header
+plus the skill's body with any frontmatter stripped). No LLM is called — it only prepares reusable
+context you can hand to whatever agent or workflow you choose.
+
+### How discovery works (generic, not PM-Skills-specific)
+
+The adapter detects skill repositories, scans them for markdown, and parses optional YAML frontmatter.
+It tolerates the common frontmatter shapes — quoted or unquoted scalars and `|`/`>` block scalars:
+
+- A directory containing a `SKILL.md` manifest becomes a single skill, named after that directory; the
+  display `name`/`description` come from the manifest frontmatter when present.
+- A library with **no** manifests falls back to treating each markdown file as its own skill,
+  inferring the name from the first `# heading` or the filename.
+- Skill ids are stable (derived from directory/file names) and made unique across libraries (a
+  collision gets a `-2`, `-3` … suffix). Hidden directories such as `.git` are ignored.
+
+Validated against a real clone of `phuryn/pm-skills` (9 plugin categories, 68 `SKILL.md` skills): all
+68 are discovered with stable, unique ids and no manual adaptation.
 
 ## Installing the A-team (`pp setup ateam`)
 
