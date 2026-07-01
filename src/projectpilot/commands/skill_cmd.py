@@ -20,11 +20,12 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from .. import prompt_builder
+from .. import console, prompt_builder
 from .. import recommend as recommend_mod
 from .. import skills
 from ..config import EXTERNAL_SKILL_PATHS_KEY, config_path
 from ..errors import StateNotFoundError
+from ..phases import phase_label
 from ..state import load_state
 
 #: Where ``pp skill run`` writes rendered skills by default.
@@ -135,23 +136,9 @@ def run_skill_run(args) -> int:
     return 0
 
 
-def _phase_label(phase) -> str:
-    return phase.value.replace("-", " ").title()
-
-
 def _star_marks() -> tuple[str, str]:
-    """Pick star glyphs the current stdout can encode, falling back to ASCII.
-
-    The Unicode stars (``★``/``☆``) are not encodable on every console (e.g. a
-    Windows ``cp1252`` terminal), where printing them raises ``UnicodeEncodeError``.
-    We probe the output encoding once and degrade to ``*``/``.`` when needed.
-    """
-    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
-    try:
-        "★☆".encode(encoding)
-    except (UnicodeEncodeError, LookupError):
-        return "*", "."
-    return "★", "☆"
+    """Star glyphs the console can encode (``★``/``☆``), else ASCII ``*``/``.``."""
+    return console.glyphs(("★", "☆"), ("*", "."))
 
 
 def _truncate(text: str, width: int = 80) -> str:
@@ -169,7 +156,7 @@ def run_skill_recommend(args) -> int:
         return 1
 
     phase = state.current_phase
-    print(f"Current phase: {_phase_label(phase)}")
+    print(f"Current phase: {phase_label(phase)}")
     print("")
 
     sources = skills.resolve_sources(base)
@@ -274,7 +261,7 @@ def run_skill_use(args) -> int:
         if not found:
             print("No skills found in the configured sources.")
             return 1
-        print(f"Current phase: {_phase_label(state.current_phase)}")
+        print(f"Current phase: {phase_label(state.current_phase)}")
         print("")
         skill, rc = _select_skill_interactively(base, state.current_phase, found)
         if skill is None:

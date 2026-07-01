@@ -21,6 +21,33 @@ release, or tool installation; no GitHub API.
 idea → validation → brief → setup-advice → planning → execution → final-validation → done
 ```
 
+## Architecture
+
+ProjectPilot is a set of small, single-responsibility modules. Each subsystem exposes a clear public
+API; higher layers consume those APIs and never reach into another module's internals. The CLI
+(`cli.py`) only parses arguments and dispatches to a thin command module per command; all logic lives
+in the subsystems below.
+
+| Subsystem | Module | Responsibility | Key public API |
+| --- | --- | --- | --- |
+| Lifecycle | `phases.py` | Canonical phases, ordering, labels | `Phase`, `PHASE_ORDER`, `next_phase`, `phase_label` |
+| State | `state.py` | Load/save `.project-pilot/status.json` | `ProjectState`, `load_state`, `save_state` |
+| Skills (scanner) | `skills.py` | Discover external skills | `scan_skills`, `find_skill`, `render_skill` |
+| Recommendations | `recommend.py` | Rank skills for a phase | `rank`, `keywords_for_phase` |
+| Prompt builder | `prompt_builder.py` | Assemble an agent-ready prompt | `collect_context`, `build_prompt` |
+| Artifact store | `artifact_store.py` | Evidence inventory (metadata only) | `add_artifact`, `list_artifacts`, `find_artifact`, `remove_artifact` |
+| Phase requirements | `phase_requirements.py` | Which artifacts a phase expects | `evaluate`, `requirements_for` |
+| Workflow advisor | `advisor.py` | Suggest the next step | `advise` |
+| Dashboard | `dashboard.py` | Aggregate the above into one view | `collect` |
+
+Two shared helpers keep the surface consistent: `phases.phase_label(phase)` is the single source of a
+phase's display name, and `console.py` centralises terminal-output capability (`glyphs` for
+Unicode/ASCII fallback of stars, marks, and the progress bar; `make_output_resilient` so arbitrary
+Unicode never crashes a legacy console). The advisor, prompt builder, and dashboard consult the
+**phase requirements engine** as the single source of truth for completeness rather than re-deriving
+it. Everything is deterministic, stdlib-only, and never calls an LLM, spawns a process, or touches the
+network.
+
 ## Install / run
 
 No runtime dependencies. Canonical invocation:

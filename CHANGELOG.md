@@ -5,6 +5,16 @@ local baselines and are not published.
 
 ## [Unreleased]
 
+### Changed
+- **v1.0 architecture review (internal consolidation; no behaviour change).** Removed duplicated
+  helpers ahead of a stable release: the phase display name is now a single `phases.phase_label`
+  (previously re-implemented in five modules), and a new `console.py` centralises terminal-output
+  capability — `glyphs()` (Unicode-with-ASCII-fallback for the star, tick/cross, and progress-bar
+  marks, previously three near-identical helpers) and `make_output_resilient()` (moved out of
+  `cli.py`). Fixed the one cross-module internal access (`next` command reaching into
+  `advisor._phase_label`). Documented the module map and each subsystem's public API in the README.
+  No new commands, features, or dependencies; all existing behaviour and output are unchanged.
+
 ### Added
 - **Project Dashboard (`pp dashboard`)** — a single, aggregated, read-only project overview. A new
   `dashboard.py` layer is a thin **aggregator**: it introduces no workflow logic and duplicates

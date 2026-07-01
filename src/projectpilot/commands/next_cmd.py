@@ -10,12 +10,13 @@ import json
 from pathlib import Path
 
 from .. import advisor
+from ..phases import phase_label
 
 
 def _render_text(advice: advisor.Advice, *, verbose: bool) -> list[str]:
     lines: list[str] = []
     if advice.phase is not None:
-        lines.append(f"Current phase: {advisor._phase_label(advice.phase)}")
+        lines.append(f"Current phase: {phase_label(advice.phase)}")
     else:
         lines.append("ProjectPilot is not initialized in this directory.")
     lines.append("")

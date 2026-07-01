@@ -26,7 +26,7 @@ from . import artifact_store, phase_requirements
 from . import recommend, skills
 from .errors import StateNotFoundError
 from .phase_requirements import PhaseEvaluation
-from .phases import Phase, next_phase
+from .phases import Phase, next_phase, phase_label
 from .state import ProjectState, load_state
 
 PRIORITY_HIGH = "High"
@@ -100,10 +100,6 @@ class AdvisorContext:
         return bool(self.top_skill_id) and not self.top_skill_prepared
 
 
-def _phase_label(phase: Phase) -> str:
-    return phase.value.replace("-", " ").title()
-
-
 # --------------------------------------------------------------------------- #
 # Rules. Each is small and independent; append to RULES to add a new one.
 # --------------------------------------------------------------------------- #
@@ -112,7 +108,7 @@ def rule_use_recommended_skill(ctx: AdvisorContext) -> list[Recommendation]:
     """Suggest preparing the phase's top recommended skill (if not done yet)."""
     if not ctx.skill_ready_to_prepare:
         return []
-    label = _phase_label(ctx.phase)
+    label = phase_label(ctx.phase)
     return [
         Recommendation(
             priority=PRIORITY_HIGH,
@@ -195,7 +191,7 @@ def rule_phase_gate(ctx: AdvisorContext) -> list[Recommendation]:
             action=action,
             reason=reason,
             command=command,
-            depends_on=f"Current {_phase_label(ctx.phase)} phase",
+            depends_on=f"Current {phase_label(ctx.phase)} phase",
         )
     ]
 
@@ -210,7 +206,7 @@ def rule_missing_requirements(ctx: AdvisorContext) -> list[Recommendation]:
     """
     if ctx.phase is Phase.BRIEF:
         return []
-    label = _phase_label(ctx.phase)
+    label = phase_label(ctx.phase)
     recommendations: list[Recommendation] = []
     for status in ctx.evaluation.missing:
         recommendations.append(
@@ -236,11 +232,11 @@ def rule_missing_brief(ctx: AdvisorContext) -> list[Recommendation]:
                 priority=PRIORITY_MEDIUM,
                 action="Provide the Project Brief",
                 reason=(
-                    f"The project is in the {_phase_label(ctx.phase)} phase but no "
+                    f"The project is in the {phase_label(ctx.phase)} phase but no "
                     f"{BRIEF_FILENAME} is present."
                 ),
                 command="pp brief import <path>",
-                depends_on=f"Current {_phase_label(ctx.phase)} phase",
+                depends_on=f"Current {phase_label(ctx.phase)} phase",
             )
         ]
     return []
@@ -349,8 +345,8 @@ def _followup(phase: Phase) -> str | None:
     if nxt is None:
         return None
     return (
-        f"After clearing the {_phase_label(phase)} gate, ProjectPilot advances to the "
-        f"{_phase_label(nxt)} phase. Review the work before advancing."
+        f"After clearing the {phase_label(phase)} gate, ProjectPilot advances to the "
+        f"{phase_label(nxt)} phase. Review the work before advancing."
     )
 
 

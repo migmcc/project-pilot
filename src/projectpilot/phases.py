@@ -61,6 +61,15 @@ GATE_FOR_NEXT: dict[Phase, str] = {
 }
 
 
+def phase_label(phase: Phase) -> str:
+    """Return the human-friendly phase name, e.g. ``setup-advice`` -> ``Setup Advice``.
+
+    The single source of truth for how a phase is displayed. Every subsystem and
+    command uses this rather than re-deriving the label.
+    """
+    return phase.value.replace("-", " ").title()
+
+
 def next_phase(phase: Phase) -> Phase | None:
     """Return the phase that follows ``phase``, or ``None`` for the terminal phase."""
     index = PHASE_ORDER.index(phase)

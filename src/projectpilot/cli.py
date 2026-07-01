@@ -8,8 +8,9 @@ transition; commands that *complete* a phase's gate may advance the phase
 from __future__ import annotations
 
 import argparse
-import sys
 from typing import Sequence
+
+from . import console
 
 from .commands.advance_cmd import run_advance
 from .commands.analyze_cmd import run_analyze
@@ -381,28 +382,8 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _make_output_resilient() -> None:
-    """Make stdout/stderr tolerate content the console encoding can't represent.
-
-    External skill libraries may contain arbitrary Unicode (emoji, symbols) that a
-    legacy console (e.g. Windows ``cp1252``) cannot encode, which would otherwise
-    raise ``UnicodeEncodeError`` mid-print. Switching the error handler to
-    ``replace`` keeps the console's own encoding but degrades unencodable
-    characters instead of crashing. Guarded: streams without ``reconfigure``
-    (such as the ``StringIO`` used in tests) are left untouched.
-    """
-    for stream in (sys.stdout, sys.stderr):
-        reconfigure = getattr(stream, "reconfigure", None)
-        if reconfigure is None:
-            continue
-        try:
-            reconfigure(errors="replace")
-        except (ValueError, OSError):  # pragma: no cover - stream already detached
-            pass
-
-
 def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> int:
-    _make_output_resilient()
+    console.make_output_resilient()
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.command == "init":

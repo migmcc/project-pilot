@@ -9,26 +9,12 @@ deterministic machine-readable form; ``--verbose`` adds optional requirements.
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
-from .. import artifact_store, phase_requirements
+from .. import artifact_store, console, phase_requirements
 from ..errors import StateNotFoundError
+from ..phases import phase_label
 from ..state import load_state
-
-
-def _phase_label(phase) -> str:
-    return phase.value.replace("-", " ").title()
-
-
-def _marks() -> tuple[str, str]:
-    """Pick check/cross glyphs the console can encode, falling back to ASCII."""
-    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
-    try:
-        "✓✗".encode(encoding)
-    except (UnicodeEncodeError, LookupError):
-        return "[x]", "[ ]"
-    return "✓", "✗"
 
 
 def _status_lines(statuses, tick, cross) -> list[str]:
@@ -55,9 +41,9 @@ def run_phase_check(args) -> int:
         return 0
 
     verbose = getattr(args, "verbose", False)
-    tick, cross = _marks()
+    tick, cross = console.glyphs(("✓", "✗"), ("[x]", "[ ]"))
 
-    lines = [f"Current phase: {_phase_label(state.current_phase)}", "", "Requirements", ""]
+    lines = [f"Current phase: {phase_label(state.current_phase)}", "", "Requirements", ""]
 
     required = evaluation.required_statuses
     if required:

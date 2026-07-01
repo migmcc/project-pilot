@@ -8,30 +8,17 @@ requirements, the recommendation's reasoning, and an artifact metadata summary
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
+from .. import console
 from .. import dashboard as dashboard_mod
+from ..phases import phase_label
 
 _BAR_WIDTH = 10
 
 
-def _phase_label(phase) -> str:
-    return phase.value.replace("-", " ").title()
-
-
-def _bar_chars() -> tuple[str, str]:
-    """Pick bar glyphs the console can encode, falling back to ASCII."""
-    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
-    try:
-        "█░".encode(encoding)
-    except (UnicodeEncodeError, LookupError):
-        return "#", "-"
-    return "█", "░"
-
-
 def _progress_bar(completion: int) -> str:
-    filled_char, empty_char = _bar_chars()
+    filled_char, empty_char = console.glyphs(("█", "░"), ("#", "-"))
     filled = max(0, min(_BAR_WIDTH, round(completion / 100 * _BAR_WIDTH)))
     return f"{filled_char * filled}{empty_char * (_BAR_WIDTH - filled)} {completion}%"
 
@@ -47,7 +34,7 @@ def _render_text(dash: dashboard_mod.Dashboard, *, verbose: bool) -> list[str]:
         lines += _recommendation_lines(dash, verbose=verbose)
         return lines
 
-    lines.append(f"Phase: {_phase_label(dash.phase)}")
+    lines.append(f"Phase: {phase_label(dash.phase)}")
     lines.append(_progress_bar(dash.completion or 0))
     lines += ["", "Ready to progress:", "Yes" if dash.ready_to_progress else "No"]
 

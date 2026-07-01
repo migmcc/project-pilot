@@ -1,6 +1,6 @@
 import unittest
 
-from projectpilot.phases import Phase, PHASE_ORDER, next_phase, phase_from_str
+from projectpilot.phases import Phase, PHASE_ORDER, next_phase, phase_from_str, phase_label
 from projectpilot.errors import UnknownPhaseError
 
 CANONICAL = [
@@ -32,6 +32,20 @@ class PhaseCatalogueTests(unittest.TestCase):
     def test_phase_from_str_invalid_raises(self):
         with self.assertRaises(UnknownPhaseError):
             phase_from_str("not-a-phase")
+
+
+class PhaseLabelTests(unittest.TestCase):
+    def test_single_word_phase(self):
+        self.assertEqual(phase_label(Phase.PLANNING), "Planning")
+
+    def test_hyphenated_phase_becomes_title_case(self):
+        self.assertEqual(phase_label(Phase.SETUP_ADVICE), "Setup Advice")
+        self.assertEqual(phase_label(Phase.FINAL_VALIDATION), "Final Validation")
+
+    def test_every_phase_has_a_label(self):
+        for phase in Phase:
+            label = phase_label(phase)
+            self.assertTrue(label and "-" not in label)
 
 
 if __name__ == "__main__":

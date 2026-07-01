@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import artifact_store, phase_requirements
-from .phases import NEXT_ACTION, Phase
+from .phases import NEXT_ACTION, Phase, phase_label
 from .state import ProjectState, state_dir
 
 #: Where ``pp skill use`` writes prompts by default.
@@ -67,11 +67,6 @@ class PromptContext:
     completion: int | None = None
     #: Labels of the required artifacts still missing for the current phase.
     missing_requirements: list[str] = field(default_factory=list)
-
-
-def phase_label(phase: Phase) -> str:
-    """Human-friendly phase name, e.g. ``setup-advice`` -> ``Setup Advice``."""
-    return phase.value.replace("-", " ").title()
 
 
 def _collect_handoffs(state: ProjectState) -> list[str]:
