@@ -4,10 +4,37 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "projectpilot"
-version = "0.2.0"
-description = "Local, deterministic lifecycle orchestrator CLI."
+version = "1.0.0"
+description = "Local, deterministic lifecycle orchestrator CLI — a process conductor with explicit approval gates."
+readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
+authors = [{ name = "Miguel Santos", email = "migmcc@gmail.com" }]
+keywords = [
+    "cli",
+    "workflow",
+    "orchestration",
+    "lifecycle",
+    "project-management",
+    "deterministic",
+    "skills",
+    "agents",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Build Tools",
+    # Local/private-first project: never upload to a public package index.
+    "Private :: Do Not Upload",
+]
+
+[project.urls]
+Repository = "https://github.com/migmcc/project-pilot"
+Changelog = "https://github.com/migmcc/project-pilot/blob/main/CHANGELOG.md"
 
 [project.scripts]
 pp = "projectpilot.cli:main"

@@ -4,9 +4,10 @@ A local, deterministic CLI that orchestrates and **enforces** a project's lifecy
 existing tooling ecosystem. It does not execute technically and never reimplements the A-Team or
 AgentDesk — it is a process conductor with explicit approval gates.
 
-> **Status:** full lifecycle implemented (`idea` → `done`). Python 3.12+, stdlib-only.
-> **Local / private-first:** intended for a private repository (backup & continuity); not published
-> and not publicly released.
+> **Status:** **v1.0.0 — first stable release.** Full lifecycle (`idea → done`), Python 3.12+,
+> stdlib-only, zero runtime dependencies, deterministic output.
+> **Local-first:** designed for a local/private repository; ProjectPilot never publishes, pushes,
+> tags, releases, or installs anything itself.
 
 ## Charter
 
@@ -47,6 +48,14 @@ Unicode never crashes a legacy console). The advisor, prompt builder, and dashbo
 **phase requirements engine** as the single source of truth for completeness rather than re-deriving
 it. Everything is deterministic, stdlib-only, and never calls an LLM, spawns a process, or touches the
 network.
+
+For a deeper dive, see the docs:
+
+- [docs/architecture.md](docs/architecture.md) — the module map (with a Mermaid diagram) and every
+  subsystem's public API.
+- [docs/workflow.md](docs/workflow.md) — the lifecycle, per-phase commands, and the skills/evidence loop.
+- [docs/extending.md](docs/extending.md) — the supported extension points (skill libraries,
+  recommendation rules, phase requirements, advisor rules).
 
 ## Install / run
 

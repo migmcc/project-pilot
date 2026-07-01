@@ -15,6 +15,20 @@ from typing import Any, Callable
 from .errors import StateNotFoundError
 from .phases import Phase
 
+__all__ = [
+    "SCHEMA_VERSION",
+    "STATE_DIRNAME",
+    "STATE_FILENAME",
+    "Clock",
+    "utc_now_iso",
+    "state_dir",
+    "state_path",
+    "state_exists",
+    "ProjectState",
+    "save_state",
+    "load_state",
+]
+
 #: Increased only on backward-incompatible changes or mandatory migrations.
 #: Additive optional fields (which load via ``.get(...)``) keep version 1.
 SCHEMA_VERSION = 1

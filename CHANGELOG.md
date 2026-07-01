@@ -1,19 +1,20 @@
 # Changelog
 
-All notable changes to ProjectPilot are documented here. This project is local-only; versions are
-local baselines and are not published.
+All notable changes to ProjectPilot are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/) and the project adheres to
+[Semantic Versioning](https://semver.org/). ProjectPilot is local-first and stdlib-only;
+**v1.0.0 is the first stable release**.
 
 ## [Unreleased]
 
-### Changed
-- **v1.0 architecture review (internal consolidation; no behaviour change).** Removed duplicated
-  helpers ahead of a stable release: the phase display name is now a single `phases.phase_label`
-  (previously re-implemented in five modules), and a new `console.py` centralises terminal-output
-  capability — `glyphs()` (Unicode-with-ASCII-fallback for the star, tick/cross, and progress-bar
-  marks, previously three near-identical helpers) and `make_output_resilient()` (moved out of
-  `cli.py`). Fixed the one cross-module internal access (`next` command reaching into
-  `advisor._phase_label`). Documented the module map and each subsystem's public API in the README.
-  No new commands, features, or dependencies; all existing behaviour and output are unchanged.
+## [1.0.0] - 2026-07-01
+
+First stable release. Since v0.2.0 (autopilot + environment diagnostics), ProjectPilot gained a
+complete, deterministic skills-and-evidence workflow layer — external skill libraries, phase-aware
+recommendations, prompt building, a workflow advisor, an artifact evidence tracker, a phase
+requirements engine, and a unified dashboard — followed by an architecture review that consolidated
+shared helpers. Everything remains local-first, stdlib-only, and deterministic: no LLM calls, no
+network, no process spawning, and no runtime dependencies.
 
 ### Added
 - **Project Dashboard (`pp dashboard`)** — a single, aggregated, read-only project overview. A new
@@ -48,7 +49,6 @@ local baselines and are not published.
   duplicate artifact-creation recommendations such as creating a PRD when a PRD artifact is already
   registered. Prompt Builder lists registered artifact metadata in project context without reading
   artifact contents. JSON output is deterministic and stdlib-only.
-
 - **Workflow advisor (`pp next`)** — analyses the project state and suggests the next logical step,
   with a justified reason for each recommendation. **Executes nothing and calls no LLM** — advice only.
   A new decoupled `advisor.py` layer uses only public interfaces (recorded state, `skills.scan_skills`,
@@ -93,6 +93,16 @@ local baselines and are not published.
   `scan_skills`, `find_skill`, `render_skill`).
 - `detectors.git_repo_status()` returning a `GitRepoStatus` (`status` / `root` / `detail`), plus the
   `GIT_MISSING` / `GIT_OK` / `GIT_INVALID` constants. `pp analyze` now prints a `Git repository:` line.
+
+### Changed
+- **Architecture review (internal consolidation; no behaviour change).** Removed duplicated
+  helpers ahead of the stable release: the phase display name is now a single `phases.phase_label`
+  (previously re-implemented in five modules), and a new `console.py` centralises terminal-output
+  capability — `glyphs()` (Unicode-with-ASCII-fallback for the star, tick/cross, and progress-bar
+  marks, previously three near-identical helpers) and `make_output_resilient()` (moved out of
+  `cli.py`). Fixed the one cross-module internal access (`next` command reaching into
+  `advisor._phase_label`). Documented the module map and each subsystem's public API in the README.
+  No new commands, features, or dependencies; all existing behaviour and output are unchanged.
 
 ### Fixed
 - **Git repository detection** — `pp doctor` and `pp analyze` no longer report `Git repository: OK`
@@ -212,5 +222,6 @@ project's lifecycle (`idea → done`). It never executes technically and does no
 - Tests use the standard library **`unittest`** only (no pytest).
 - No commits/push/release/tag from the runtime; no GitHub API; no AgentDesk; no A-team installation.
 
+[1.0.0]: https://github.com/migmcc/project-pilot/releases/tag/v1.0.0
 [0.2.0]: local baseline (not published)
 [0.1.0]: local baseline (not published)

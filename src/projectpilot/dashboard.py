@@ -25,6 +25,11 @@ from .errors import StateNotFoundError
 from .phases import Phase
 from .state import load_state
 
+__all__ = [
+    "Dashboard",
+    "collect",
+]
+
 #: How many recommended skills to surface.
 _MAX_SKILLS = 5
 

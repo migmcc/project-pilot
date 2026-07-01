@@ -21,6 +21,13 @@ from . import artifact_store, phase_requirements
 from .phases import NEXT_ACTION, Phase, phase_label
 from .state import ProjectState, state_dir
 
+__all__ = [
+    "OUTPUT_SUBDIR",
+    "PromptContext",
+    "collect_context",
+    "build_prompt",
+]
+
 #: Where ``pp skill use`` writes prompts by default.
 OUTPUT_SUBDIR = Path("projectpilot_outputs") / "prompts"
 

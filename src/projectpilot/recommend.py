@@ -27,6 +27,18 @@ from .config import load_mapping
 from .phases import Phase
 from .skills import Skill
 
+__all__ = [
+    "RULE_KEY_PREFIX",
+    "MAX_STARS",
+    "DEFAULT_RULES",
+    "Recommendation",
+    "category_of",
+    "stars_string",
+    "rank",
+    "load_rules",
+    "keywords_for_phase",
+]
+
 #: Config keys of the form ``recommend_<phase-value>`` override a phase's terms.
 RULE_KEY_PREFIX = "recommend_"
 

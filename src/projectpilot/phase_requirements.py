@@ -24,6 +24,16 @@ from dataclasses import dataclass, field
 
 from .phases import Phase
 
+__all__ = [
+    "Requirement",
+    "PhaseRequirements",
+    "REQUIREMENTS",
+    "RequirementStatus",
+    "PhaseEvaluation",
+    "requirements_for",
+    "evaluate",
+]
+
 # Completion is measured over *required* artifacts. ``threshold`` is the fraction
 # of required artifacts that must be present for the phase to be "ready to
 # progress" (1.0 = all required). Optional artifacts are advisory only: they are

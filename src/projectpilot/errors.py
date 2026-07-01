@@ -2,6 +2,14 @@
 from __future__ import annotations
 
 
+
+__all__ = [
+    "ProjectPilotError",
+    "StateExistsError",
+    "StateNotFoundError",
+    "UnknownPhaseError",
+]
+
 class ProjectPilotError(Exception):
     """Base class for all ProjectPilot errors."""
 

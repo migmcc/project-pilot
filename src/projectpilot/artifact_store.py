@@ -13,6 +13,24 @@ from typing import Callable
 
 from .state import state_dir, utc_now_iso
 
+
+__all__ = [
+    "ARTIFACTS_FILENAME",
+    "ORIGIN_MANUAL",
+    "STATUS_REGISTERED",
+    "Clock",
+    "ARTIFACT_RECORD_KEYS",
+    "artifacts_path",
+    "sha256_file",
+    "load_inventory",
+    "dumps_inventory",
+    "save_inventory",
+    "list_artifacts",
+    "find_artifact",
+    "add_artifact",
+    "remove_artifact",
+]
+
 ARTIFACTS_FILENAME = "artifacts.json"
 ORIGIN_MANUAL = "manual"
 STATUS_REGISTERED = "registered"

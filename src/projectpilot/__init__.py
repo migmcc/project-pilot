@@ -1,3 +1,3 @@
-"""ProjectPilot — local, deterministic lifecycle orchestrator CLI (Run A foundation)."""
+"""ProjectPilot — local, deterministic lifecycle orchestrator CLI."""
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"

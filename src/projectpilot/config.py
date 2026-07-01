@@ -22,6 +22,17 @@ from pathlib import Path
 
 from .state import STATE_DIRNAME
 
+
+__all__ = [
+    "CONFIG_FILENAME",
+    "EXTERNAL_SKILL_PATHS_KEY",
+    "config_path",
+    "Config",
+    "parse_config",
+    "load_config",
+    "load_mapping",
+]
+
 CONFIG_FILENAME = "config.yaml"
 
 #: The configuration key that lists external skill repositories.

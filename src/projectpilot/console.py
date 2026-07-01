@@ -14,6 +14,13 @@ from __future__ import annotations
 import sys
 
 
+
+__all__ = [
+    "encodable",
+    "glyphs",
+    "make_output_resilient",
+]
+
 def encodable(text: str) -> bool:
     """True if ``text`` can be encoded with the current stdout encoding.
 

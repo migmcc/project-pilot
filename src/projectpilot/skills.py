@@ -28,6 +28,20 @@ from pathlib import Path
 
 from .config import load_config
 
+__all__ = [
+    "SKILL_MANIFEST",
+    "KIND_MANIFEST",
+    "KIND_MARKDOWN",
+    "SkillSource",
+    "Skill",
+    "resolve_sources",
+    "parse_skill_file",
+    "scan_skills",
+    "find_skill",
+    "skill_body",
+    "render_skill",
+]
+
 #: Manifest filename that marks a directory as a single skill (case-insensitive).
 SKILL_MANIFEST = "SKILL.md"
 

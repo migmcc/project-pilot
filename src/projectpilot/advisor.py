@@ -29,6 +29,25 @@ from .phase_requirements import PhaseEvaluation
 from .phases import Phase, next_phase, phase_label
 from .state import ProjectState, load_state
 
+
+__all__ = [
+    "PRIORITY_HIGH",
+    "PRIORITY_MEDIUM",
+    "PRIORITY_LOW",
+    "BRIEF_FILENAME",
+    "Recommendation",
+    "Advice",
+    "AdvisorContext",
+    "rule_use_recommended_skill",
+    "rule_phase_gate",
+    "rule_missing_requirements",
+    "rule_missing_brief",
+    "rule_no_handoffs",
+    "rule_project_done",
+    "RULES",
+    "advise",
+]
+
 PRIORITY_HIGH = "High"
 PRIORITY_MEDIUM = "Medium"
 PRIORITY_LOW = "Low"
