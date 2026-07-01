@@ -22,9 +22,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from . import artifact_store
+from . import artifact_store, phase_requirements
 from . import recommend, skills
 from .errors import StateNotFoundError
+from .phase_requirements import PhaseEvaluation
 from .phases import Phase, next_phase
 from .state import ProjectState, load_state
 
@@ -91,6 +92,7 @@ class AdvisorContext:
     has_handoffs: bool
     top_skill_id: str | None
     top_skill_prepared: bool
+    evaluation: PhaseEvaluation
 
     @property
     def skill_ready_to_prepare(self) -> bool:
@@ -198,6 +200,34 @@ def rule_phase_gate(ctx: AdvisorContext) -> list[Recommendation]:
     ]
 
 
+def rule_missing_requirements(ctx: AdvisorContext) -> list[Recommendation]:
+    """Recommend producing each required artifact the phase is still missing.
+
+    This consults the Phase Requirements Engine -- the single source of truth for
+    what a phase expects -- rather than checking artifacts ad hoc. The BRIEF
+    phase is skipped here because its single requirement is already covered, at a
+    higher priority, by :func:`rule_phase_gate` ("Import the Project Brief").
+    """
+    if ctx.phase is Phase.BRIEF:
+        return []
+    label = _phase_label(ctx.phase)
+    recommendations: list[Recommendation] = []
+    for status in ctx.evaluation.missing:
+        recommendations.append(
+            Recommendation(
+                priority=PRIORITY_MEDIUM,
+                action=f"Produce the required '{status.label}' artifact",
+                reason=(
+                    f"The {label} phase requires a {status.label}, but no matching "
+                    "artifact is registered."
+                ),
+                command="pp artifact add <path>",
+                depends_on=f"Current {label} phase",
+            )
+        )
+    return recommendations
+
+
 def rule_missing_brief(ctx: AdvisorContext) -> list[Recommendation]:
     """Justify a missing Project Brief once the project is past the brief phase."""
     if ctx.phase in _PAST_BRIEF and not ctx.has_brief:
@@ -247,6 +277,7 @@ def rule_project_done(ctx: AdvisorContext) -> list[Recommendation]:
 RULES: list[Callable[[AdvisorContext], list[Recommendation]]] = [
     rule_use_recommended_skill,
     rule_phase_gate,
+    rule_missing_requirements,
     rule_missing_brief,
     rule_no_handoffs,
     rule_project_done,
@@ -309,6 +340,7 @@ def _build_context(base: Path, state: ProjectState) -> AdvisorContext:
         has_handoffs=bool(state.history),
         top_skill_id=top_skill_id,
         top_skill_prepared=top_skill_prepared,
+        evaluation=phase_requirements.evaluate(phase, artifacts),
     )
 
 

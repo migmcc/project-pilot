@@ -6,6 +6,18 @@ local baselines and are not published.
 ## [Unreleased]
 
 ### Added
+- **Phase Requirements Engine (`pp phase check`)** — a deterministic engine (`phase_requirements.py`)
+  that defines which artifacts each lifecycle phase expects (required + optional, with a completion
+  threshold) and evaluates completeness against the registered artifact inventory. It reads only
+  artifact **metadata** (never contents), uses stdlib only, and is the **single source of truth** for
+  phase completeness. New command `pp phase check` reports satisfied/missing requirements, a completion
+  percentage, and `ready_to_progress`; `--verbose` adds optional requirements and `--json` emits a
+  deterministic `{phase, completion, ready_to_progress, completed, missing}` payload (✓/✗ marks degrade
+  to ASCII on legacy consoles). **Integrations:** the Workflow Advisor now consults the engine via a new
+  `rule_missing_requirements` rule instead of checking artifacts ad hoc, and the Prompt Builder includes
+  a phase-completion summary (percentage + missing requirement labels) in the project context —
+  metadata only. Completion = `round(100 × satisfied_required / total_required)`; optional artifacts are
+  advisory and never affect it. Extending is a one-line change to the `REQUIREMENTS` table.
 - **Workflow Evidence Tracker (`pp artifact`)** — records metadata for human- or external-agent
   produced evidence in `.project-pilot/artifacts.json`. New commands: `pp artifact add <file>`,
   `pp artifact list`, `pp artifact list --json`, `pp artifact show <id>`, and

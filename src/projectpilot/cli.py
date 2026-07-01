@@ -25,6 +25,7 @@ from .commands.execution_cmd import run_execution_approve
 from .commands.final_validation_cmd import run_final_validation_prepare
 from .commands.init_cmd import run_init
 from .commands.next_cmd import run_next
+from .commands.phase_cmd import run_phase_check
 from .commands.setup_advice_cmd import run_advise_setup
 from .commands.setup_cmd import run_setup_ateam
 from .commands.skill_cmd import (
@@ -107,6 +108,19 @@ def build_parser() -> argparse.ArgumentParser:
     p_artifact_remove.add_argument("id", help="Artifact id.")
     p_artifact_remove.add_argument(
         "--dir", default=".", help="Project directory (default: current)."
+    )
+
+    p_phase = subparsers.add_parser(
+        "phase", help="Inspect phase artifact requirements and completion (read-only)."
+    )
+    phase_subparsers = p_phase.add_subparsers(dest="phase_command", required=True)
+    p_phase_check = phase_subparsers.add_parser(
+        "check", help="Report satisfied/missing requirements for the current phase."
+    )
+    p_phase_check.add_argument("--dir", default=".", help="Project directory (default: current).")
+    p_phase_check.add_argument("--json", action="store_true", help="Emit deterministic JSON.")
+    p_phase_check.add_argument(
+        "--verbose", action="store_true", help="Also list optional requirements."
     )
 
     p_start = subparsers.add_parser(
@@ -387,6 +401,8 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
         return run_next(args)
     if args.command == "artifact":
         return run_artifact(args, clock=clock)
+    if args.command == "phase" and args.phase_command == "check":
+        return run_phase_check(args)
     if args.command == "start":
         return run_start(args, clock=clock)
     if args.command == "continue":

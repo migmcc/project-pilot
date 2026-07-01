@@ -52,6 +52,11 @@ python -m projectpilot artifact list --json
 python -m projectpilot artifact show <artifact-id>
 python -m projectpilot artifact remove <artifact-id>
 
+# Phase requirements (which artifacts a phase expects; completion %)
+python -m projectpilot phase check
+python -m projectpilot phase check --verbose        # also list optional requirements
+python -m projectpilot phase check --json           # deterministic JSON
+
 # Environment diagnostics (read-only / dry-run; change nothing)
 python -m projectpilot doctor                        # Python/Git/repo + ~/.claude install status
 python -m projectpilot analyze                       # detect stack/state, suggest next action
@@ -380,6 +385,7 @@ function that takes an `AdvisorContext` and returns zero or more recommendations
 | --- | --- | --- |
 | `rule_use_recommended_skill` | a top skill for the phase isn't prepared yet, unless registered evidence already covers that artifact | `pp skill use <id>` (High) |
 | `rule_phase_gate` | always (per phase) | the phase's gate command (High, or Medium if a skill is pending) |
+| `rule_missing_requirements` | the Phase Requirements Engine reports a required artifact missing | produce/register it (Medium) |
 | `rule_missing_brief` | past the brief phase with no `PROJECT_BRIEF.md` or registered brief artifact | import a brief (Medium) |
 | `rule_no_handoffs` | no lifecycle events recorded yet | `pp continue` (Low) |
 | `rule_project_done` | phase is `done` | "Project complete" (Low) |
@@ -387,6 +393,81 @@ function that takes an `AdvisorContext` and returns zero or more recommendations
 **Adding a rule** is a two-line change: write a `rule_*(ctx) -> list[Recommendation]` function and
 append it to the `RULES` list in `advisor.py`. Because the engine sorts by priority with a stable
 sort, a new rule slots into the existing order without disturbing the others.
+
+## Phase requirements (`pp phase check`)
+
+The **Phase Requirements Engine** (`phase_requirements.py`) defines which artifacts each lifecycle
+phase expects and measures how complete the current phase is. It is the **single source of truth** for
+phase completeness — the workflow advisor and the prompt builder both consult it rather than
+re-deriving the rules. It reads only artifact **metadata** (never file contents), calls no LLM, and is
+fully deterministic.
+
+```bash
+pp phase check            # required requirements, completion %, ready-to-progress
+pp phase check --verbose  # also list optional requirements
+pp phase check --json     # deterministic JSON for tooling
+```
+
+Example:
+
+```text
+Current phase: Planning
+
+Requirements
+
+✓ PRD
+✗ Roadmap
+
+Optional
+
+✗ Risk Analysis
+✗ Architecture
+
+Completion
+
+50%
+
+Ready to progress
+
+No
+```
+
+JSON:
+
+```json
+{
+  "phase": "planning",
+  "completion": 50,
+  "ready_to_progress": false,
+  "completed": ["prd"],
+  "missing": ["roadmap"]
+}
+```
+
+**Requirement model.** Each phase has a tuple of **required** requirements, a tuple of **optional**
+ones, and a completion **threshold**. A requirement is a `(key, label, keywords)` triple; it is
+*satisfied* when a registered artifact's id/path/name/type matches one of its keywords (whole-token,
+case-insensitive). For example, Planning requires a PRD and a Roadmap and optionally a Risk Analysis
+and an Architecture doc:
+
+```python
+Phase.PLANNING: PhaseRequirements(
+    required=(_PRD, _ROADMAP),
+    optional=(_RISK, _ARCHITECTURE),
+)
+```
+
+**Completion algorithm.** Completion is the percentage of **required** artifacts registered —
+`round(100 × satisfied_required / total_required)`, or `100%` when a phase has no required artifacts.
+Optional requirements are reported for guidance but never change the percentage. A phase is
+**ready to progress** when the satisfied fraction meets its `threshold` (default `1.0`, i.e. all
+required artifacts present). On terminals that cannot render `✓`/`✗` (e.g. a legacy Windows console)
+the marks degrade to `[x]`/`[ ]` automatically.
+
+**Extending requirements.** Add or edit a `Requirement` in a phase's `required`/`optional` tuple in
+`REQUIREMENTS` (in `phase_requirements.py`). Every consumer — `pp phase check`, the advisor's
+`rule_missing_requirements`, and the prompt builder's completion summary — updates automatically,
+because they all call `phase_requirements.evaluate(phase, artifacts)`.
 
 ## Installing the A-team (`pp setup ateam`)
 

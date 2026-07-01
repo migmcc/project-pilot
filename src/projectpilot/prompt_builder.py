@@ -17,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import artifact_store
+from . import artifact_store, phase_requirements
 from .phases import NEXT_ACTION, Phase
 from .state import ProjectState, state_dir
 
@@ -63,6 +63,10 @@ class PromptContext:
     notes: list[str] = field(default_factory=list)
     produced_files: list[str] = field(default_factory=list)
     registered_artifacts: list[str] = field(default_factory=list)
+    #: Phase completion percentage (0-100), or ``None`` when not computed.
+    completion: int | None = None
+    #: Labels of the required artifacts still missing for the current phase.
+    missing_requirements: list[str] = field(default_factory=list)
 
 
 def phase_label(phase: Phase) -> str:
@@ -145,6 +149,7 @@ def collect_context(state: ProjectState, base: Path) -> PromptContext:
     are dropped by :func:`build_prompt`.
     """
     phase = state.current_phase
+    evaluation = phase_requirements.evaluate(phase, artifact_store.list_artifacts(base))
     return PromptContext(
         project_name=state.name or None,
         phase_value=phase.value,
@@ -155,6 +160,8 @@ def collect_context(state: ProjectState, base: Path) -> PromptContext:
         notes=_collect_notes(state),
         produced_files=_collect_files(base),
         registered_artifacts=_collect_artifacts(base),
+        completion=evaluation.completion,
+        missing_requirements=[status.label for status in evaluation.missing],
     )
 
 
@@ -189,6 +196,12 @@ def _context_block(context: PromptContext) -> list[str]:
         lines.append("Registered artifacts:")
         lines += [f"- {item}" for item in context.registered_artifacts]
         lines.append("")
+    if context.completion is not None:
+        lines += _labelled("Phase completion", f"{context.completion}%")
+        if context.missing_requirements:
+            lines.append("Missing requirements:")
+            lines += [f"- {item}" for item in context.missing_requirements]
+            lines.append("")
     while lines and lines[-1] == "":
         lines.pop()
     return lines
