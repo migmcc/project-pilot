@@ -23,6 +23,7 @@ from .commands.done_cmd import run_done_approve
 from .commands.execution_cmd import run_execution_approve
 from .commands.final_validation_cmd import run_final_validation_prepare
 from .commands.init_cmd import run_init
+from .commands.next_cmd import run_next
 from .commands.setup_advice_cmd import run_advise_setup
 from .commands.setup_cmd import run_setup_ateam
 from .commands.skill_cmd import (
@@ -59,6 +60,15 @@ def build_parser() -> argparse.ArgumentParser:
         "status", help="Show the current phase and next action (read-only)."
     )
     p_status.add_argument("--dir", default=".", help="Project directory (default: current).")
+
+    p_next = subparsers.add_parser(
+        "next", help="Workflow advisor: suggest the next logical step (advice only)."
+    )
+    p_next.add_argument("--dir", default=".", help="Project directory (default: current).")
+    p_next.add_argument("--json", action="store_true", help="Emit deterministic JSON.")
+    p_next.add_argument(
+        "--verbose", action="store_true", help="Include each recommendation's dependencies."
+    )
 
     p_start = subparsers.add_parser(
         "start", help="Read an idea file, initialize state, and run the autopilot."
@@ -334,6 +344,8 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
         return run_init(args, clock=clock)
     if args.command == "status":
         return run_status(args)
+    if args.command == "next":
+        return run_next(args)
     if args.command == "start":
         return run_start(args, clock=clock)
     if args.command == "continue":

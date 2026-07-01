@@ -14,6 +14,14 @@ local baselines and are not published.
   Still stdlib-only and read-only — no subprocess, no `git` invocation.
 
 ### Added
+- **Workflow advisor (`pp next`)** — analyses the project state and suggests the next logical step,
+  with a justified reason for each recommendation. **Executes nothing and calls no LLM** — advice only.
+  A new decoupled `advisor.py` layer uses only public interfaces (recorded state, `skills.scan_skills`,
+  `recommend.rank`); its engine is a list of small, independent rules (missing brief, pending phase
+  gate, un-prepared recommended skill, no handoffs, project done) that each return prioritised
+  `Recommendation`s. Output is deterministic and ordered by priority (High/Medium/Low). `--verbose`
+  adds dependencies; `--json` emits a stable machine-readable form for tooling. Adding a rule is a
+  two-line change (write a `rule_*` function, append it to `RULES`).
 - **Skill execution wizard (`pp skill use`)** — selects a skill and builds a consolidated,
   agent-ready prompt that combines the project's recorded context with the skill's content. **Calls no
   model and executes nothing** — the prompt is meant to be run in Claude Code, Codex, ChatGPT, or any

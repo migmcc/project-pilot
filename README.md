@@ -42,6 +42,8 @@ pp --help
 # Foundation
 python -m projectpilot init "my project idea" --name "My Project"
 python -m projectpilot status                       # read-only
+python -m projectpilot next                          # workflow advisor: suggest the next step
+python -m projectpilot next --json                   # deterministic machine-readable advice
 
 # Environment diagnostics (read-only / dry-run; change nothing)
 python -m projectpilot doctor                        # Python/Git/repo + ~/.claude install status
@@ -266,6 +268,60 @@ collect context, join the skill, emit Markdown. It contains **no skill discovery
 the scanner (`skills.py`) finds skills, the recommender (`recommend.py`) ranks them, and the builder
 just assembles. That separation means the prompt format can evolve (templates, variables, multiple
 skills) without touching discovery or ranking.
+
+## Workflow advisor (`pp next`)
+
+`pp next` is ProjectPilot as an **orchestrator**: it reads the current project state, spots gaps
+(pending gates, missing artifacts, un-prepared recommended skills), and tells you the next logical
+step — with a reason for each. It **executes nothing and calls no LLM**; it only advises.
+
+```bash
+pp next            # justified, prioritised recommendations for the current state
+pp next --verbose  # also show each recommendation's dependencies
+pp next --json     # deterministic JSON for tooling / integration
+```
+
+Example:
+
+```text
+Current phase: Planning
+
+Recommended next action
+
+1. Prepare the recommended skill 'sprint-plan'
+   Priority: High
+   Reason: 'sprint-plan' is the top recommended skill for the Planning phase, and no prompt has been prepared for it yet.
+   Suggested command: pp skill use sprint-plan
+
+2. Approve the move to execution
+   Priority: Medium
+   Reason: Planning must be signed off before execution begins.
+   Suggested command: pp approve execution --reason "..."
+
+After clearing the Planning gate, ProjectPilot advances to the Execution phase. Review the work before advancing.
+```
+
+Each recommendation carries a **priority** (High / Medium / Low), an **action**, a **reason**, an
+optional **suggested command**, and (with `--verbose` or in JSON) its **dependencies**.
+Recommendations are ordered by priority, and the whole output is **deterministic** — the same state
+always produces the same advice, so `--json` is safe to consume from other tools.
+
+**Architecture & rules.** The advisor is its own layer (`advisor.py`) that uses only public
+interfaces — it reads recorded state and calls `skills.scan_skills` / `recommend.rank`, never touching
+scanner or prompt-builder internals. Its engine is a list of small, independent rules; each is a
+function that takes an `AdvisorContext` and returns zero or more recommendations. The current rules:
+
+| Rule | Fires when | Suggests |
+| --- | --- | --- |
+| `rule_use_recommended_skill` | a top skill for the phase isn't prepared yet | `pp skill use <id>` (High) |
+| `rule_phase_gate` | always (per phase) | the phase's gate command (High, or Medium if a skill is pending) |
+| `rule_missing_brief` | past the brief phase with no `PROJECT_BRIEF.md` | import a brief (Medium) |
+| `rule_no_handoffs` | no lifecycle events recorded yet | `pp continue` (Low) |
+| `rule_project_done` | phase is `done` | "Project complete" (Low) |
+
+**Adding a rule** is a two-line change: write a `rule_*(ctx) -> list[Recommendation]` function and
+append it to the `RULES` list in `advisor.py`. Because the engine sorts by priority with a stable
+sort, a new rule slots into the existing order without disturbing the others.
 
 ## Installing the A-team (`pp setup ateam`)
 
