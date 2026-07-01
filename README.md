@@ -10,6 +10,46 @@ AgentDesk — it is a process conductor with explicit approval gates.
 > pushes, tags, releases, or installs anything itself. Licensed under the [MIT License](LICENSE) but
 > not distributed on PyPI.
 
+<!-- Public-release TODO: add a short demo GIF or screenshot of `pp dashboard` / `pp next` here. -->
+
+## Why ProjectPilot?
+
+AI agents (Claude Code, Codex, ChatGPT, …) are great at *doing the work* — writing a PRD, drafting an
+architecture, generating tests. What they don't do is **hold the shape of a project over time**: which
+phase you're in, which gates you've passed, which artifacts actually exist, and what the next logical
+step is. That coordination usually lives in someone's head, a Notion board, or a chat scrollback.
+
+ProjectPilot is the missing **conductor**. It keeps a small, deterministic record of your project's
+lifecycle and tells you what to do next — but it **orchestrates, never executes**. It never runs an
+agent, calls an LLM, edits your files, or approves its own work. You (and the tools you already use)
+stay in control; ProjectPilot keeps everyone honest about the process.
+
+**In practice it lets you:**
+
+- track exactly which lifecycle phase a project is in, with explicit human approval gates;
+- discover skills from external libraries and turn them into ready-to-paste prompts for any agent;
+- record the evidence agents produce (a PRD, a roadmap, a review) as metadata — never touching the files;
+- check, at any moment, what a phase still requires and what the next step should be;
+- see it all in one deterministic dashboard.
+
+Everything is **local-first**, **stdlib-only** (zero runtime dependencies), and **deterministic** —
+the same state always produces the same output, so it is safe to diff, script, and trust.
+
+## How it compares
+
+ProjectPilot is deliberately narrow: it is the process layer *around* your existing tools, not a
+replacement for any of them.
+
+| Tool | What it is great at | What ProjectPilot adds |
+| --- | --- | --- |
+| **Generic task managers** (Jira, Trello, Linear) | Tasks, boards, tickets | A deterministic *lifecycle* with enforced phase gates and artifact requirements — not just a to-do list |
+| **Notion / docs** | Free-form notes and wikis | Machine-checked project state and next-step advice you can script (`--json`), not prose you must read |
+| **PM Skills & other skill libraries** | The *knowledge* (how to write a PRD, run a pre-mortem) | Applies that knowledge in context and tracks whether the resulting artifact exists |
+| **Claude Code / Codex / ChatGPT** | *Executing* the work | The surrounding process — which phase, which gate, which artifact, what's next; it prepares the prompt but never runs the agent |
+
+In one line: **skill libraries and agents provide the knowledge and the execution; ProjectPilot keeps
+control of the project.**
+
 ## Charter
 
 ProjectPilot orchestrates and enforces the lifecycle; it never executes technically. It does **not
@@ -58,20 +98,67 @@ For a deeper dive, see the docs:
 - [docs/extending.md](docs/extending.md) — the supported extension points (skill libraries,
   recommendation rules, phase requirements, advisor rules).
 
-## Install / run
+## Quick start
 
-No runtime dependencies. Canonical invocation:
+ProjectPilot has **no runtime dependencies** — Python 3.12+ is all you need. Run it straight from the
+source tree:
 
 ```bash
 python -m projectpilot --help
 ```
 
-Optionally expose the `pp` shortcut with an editable install (a manual developer step):
+Optionally expose the shorter `pp` command with an editable install (a manual developer step):
 
 ```bash
 pip install -e .
 pp --help
 ```
+
+A 30-second first run:
+
+```bash
+pp init "a local code review assistant" --name "Review Assistant"   # start tracking a project
+pp status                                                           # where am I?
+pp next                                                             # what should I do next?
+pp dashboard                                                        # the whole picture, at a glance
+```
+
+`pp init` creates a small `.project-pilot/status.json` in the current directory; nothing else on your
+machine is touched.
+
+## End-to-end example
+
+A realistic slice: you are in the **planning** phase and want a PRD, using a skill library and an agent
+of your choice. ProjectPilot never runs the agent — it prepares the prompt and tracks the result.
+
+```bash
+# 1. Point ProjectPilot at a skill library (any markdown skill repo works).
+#    In .project-pilot/config.yaml:
+#      external_skill_paths:
+#        - ../pm-skills
+
+# 2. Ask what the current phase needs, and what to do next.
+pp phase check            # e.g. Planning requires: PRD, Roadmap  (0% complete)
+pp next                   # advisor: "Prepare the recommended skill 'create-prd'"
+
+# 3. Build a ready-to-paste prompt for the recommended skill.
+pp skill use create-prd   # writes projectpilot_outputs/prompts/create-prd.md
+
+# 4. Paste that prompt into Claude Code / Codex / ChatGPT and produce docs/PRD.md yourself.
+#    (ProjectPilot did not call any model.)
+
+# 5. Register the evidence — metadata only; the file is never copied or read.
+pp artifact add docs/PRD.md
+
+# 6. Watch the project move forward.
+pp phase check            # Planning: PRD ✓, Roadmap ✗  (50% complete)
+pp next                   # advisor now points at the missing Roadmap
+pp dashboard              # one overview: phase, completion, top recommendation, artifacts, skills
+```
+
+At no point did ProjectPilot execute a skill, call an LLM, edit a file, or approve a result — it kept
+the process on track while you (and your agent of choice) did the work. See
+[docs/workflow.md](docs/workflow.md) for the full lifecycle and per-phase commands.
 
 ## Commands
 
@@ -676,3 +763,24 @@ API, or VCS/release/install automation.
 
 A GitHub Actions workflow (`.github/workflows/ci.yml`) runs the unit tests and the no-automation
 guard on Python 3.12, with no external dependencies and no pytest.
+
+## Screenshots & GitHub presentation
+
+> This section is prepared for a possible future public release. The repository is **private and
+> local-first today** and is **not published to PyPI** (`Private :: Do Not Upload`). None of the assets
+> below are required to use ProjectPilot.
+
+Placeholders to fill in before making the repository public:
+
+- **Demo GIF** — a short screen capture of `pp dashboard` and `pp next` on a real project.
+  <!-- ![ProjectPilot dashboard demo](docs/assets/dashboard.gif) -->
+- **Screenshots** — `pp phase check --verbose`, `pp skill recommend`, and a generated prompt from
+  `pp skill use`.
+  <!-- ![pp phase check](docs/assets/phase-check.png) -->
+- **Suggested GitHub topics** — `cli`, `workflow`, `orchestration`, `lifecycle`, `project-management`,
+  `deterministic`, `ai-agents`, `prompt-engineering`, `python`, `stdlib`.
+- **GitHub Release notes** — draft per version lives in [CHANGELOG.md](CHANGELOG.md); the release-note
+  text for a tag can be lifted from that version's section.
+
+Everything shown in the examples above is real CLI output, so screenshots can be captured directly by
+running the commands in a scratch project.

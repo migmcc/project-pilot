@@ -36,7 +36,9 @@ classifiers = [
 
 [project.urls]
 Repository = "https://github.com/migmcc/project-pilot"
+Documentation = "https://github.com/migmcc/project-pilot/blob/main/docs/architecture.md"
 Changelog = "https://github.com/migmcc/project-pilot/blob/main/CHANGELOG.md"
+Issues = "https://github.com/migmcc/project-pilot/issues"
 
 [project.scripts]
 pp = "projectpilot.cli:main"
