@@ -5,15 +5,18 @@ local baselines and are not published.
 
 ## [Unreleased]
 
-### Fixed
-- **Git repository detection** — `pp doctor` and `pp analyze` no longer report `Git repository: OK`
-  when only an empty or corrupt `.git` exists. Detection now distinguishes `missing` (no `.git`),
-  `OK` (valid `.git` directory with `HEAD`, `objects/`, and `refs/`), and `invalid` (a `.git` that
-  exists but is incomplete). A `.git` *file* of the form `gitdir: <path>` (submodules and linked
-  worktrees, including the `commondir` indirection) is resolved and validated against its target.
-  Still stdlib-only and read-only — no subprocess, no `git` invocation.
-
 ### Added
+- **Workflow Evidence Tracker (`pp artifact`)** — records metadata for human- or external-agent
+  produced evidence in `.project-pilot/artifacts.json`. New commands: `pp artifact add <file>`,
+  `pp artifact list`, `pp artifact list --json`, `pp artifact show <id>`, and
+  `pp artifact remove <id>`. The dedicated `artifact_store.py` module owns inventory load/save,
+  SHA-256 calculation, stable path-derived ids, duplicate handling, listing, lookup, and removal.
+  ProjectPilot records only metadata/path; it does **not** execute, validate, approve, copy, modify,
+  upload, or read artifact content. Advisor now consults registered artifact metadata to avoid
+  duplicate artifact-creation recommendations such as creating a PRD when a PRD artifact is already
+  registered. Prompt Builder lists registered artifact metadata in project context without reading
+  artifact contents. JSON output is deterministic and stdlib-only.
+
 - **Workflow advisor (`pp next`)** — analyses the project state and suggests the next logical step,
   with a justified reason for each recommendation. **Executes nothing and calls no LLM** — advice only.
   A new decoupled `advisor.py` layer uses only public interfaces (recorded state, `skills.scan_skills`,
@@ -58,6 +61,14 @@ local baselines and are not published.
   `scan_skills`, `find_skill`, `render_skill`).
 - `detectors.git_repo_status()` returning a `GitRepoStatus` (`status` / `root` / `detail`), plus the
   `GIT_MISSING` / `GIT_OK` / `GIT_INVALID` constants. `pp analyze` now prints a `Git repository:` line.
+
+### Fixed
+- **Git repository detection** — `pp doctor` and `pp analyze` no longer report `Git repository: OK`
+  when only an empty or corrupt `.git` exists. Detection now distinguishes `missing` (no `.git`),
+  `OK` (valid `.git` directory with `HEAD`, `objects/`, and `refs/`), and `invalid` (a `.git` that
+  exists but is incomplete). A `.git` *file* of the form `gitdir: <path>` (submodules and linked
+  worktrees, including the `commondir` indirection) is resolved and validated against its target.
+  Still stdlib-only and read-only — no subprocess, no `git` invocation.
 
 ## [0.2.0] - 2026-06-24
 

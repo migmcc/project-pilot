@@ -14,6 +14,7 @@ from typing import Sequence
 from .commands.advance_cmd import run_advance
 from .commands.analyze_cmd import run_analyze
 from .commands.approve_cmd import run_approve
+from .commands.artifact_cmd import run_artifact
 from .commands.brief_cmd import run_brief_import
 from .commands.continue_cmd import run_continue
 from .commands.check_ateam_cmd import run_check_ateam
@@ -68,6 +69,44 @@ def build_parser() -> argparse.ArgumentParser:
     p_next.add_argument("--json", action="store_true", help="Emit deterministic JSON.")
     p_next.add_argument(
         "--verbose", action="store_true", help="Include each recommendation's dependencies."
+    )
+
+    p_artifact = subparsers.add_parser(
+        "artifact", help="Register externally produced workflow evidence."
+    )
+    artifact_subparsers = p_artifact.add_subparsers(
+        dest="artifact_command", required=True
+    )
+    p_artifact_add = artifact_subparsers.add_parser(
+        "add", help="Register artifact metadata without copying the file."
+    )
+    p_artifact_add.add_argument("file", help="Artifact file to register.")
+    p_artifact_add.add_argument(
+        "--dir", default=".", help="Project directory (default: current)."
+    )
+
+    p_artifact_list = artifact_subparsers.add_parser(
+        "list", help="List registered artifacts."
+    )
+    p_artifact_list.add_argument("--json", action="store_true", help="Emit deterministic JSON.")
+    p_artifact_list.add_argument(
+        "--dir", default=".", help="Project directory (default: current)."
+    )
+
+    p_artifact_show = artifact_subparsers.add_parser(
+        "show", help="Show full metadata for one artifact."
+    )
+    p_artifact_show.add_argument("id", help="Artifact id.")
+    p_artifact_show.add_argument(
+        "--dir", default=".", help="Project directory (default: current)."
+    )
+
+    p_artifact_remove = artifact_subparsers.add_parser(
+        "remove", help="Remove an artifact inventory entry only."
+    )
+    p_artifact_remove.add_argument("id", help="Artifact id.")
+    p_artifact_remove.add_argument(
+        "--dir", default=".", help="Project directory (default: current)."
     )
 
     p_start = subparsers.add_parser(
@@ -346,6 +385,8 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
         return run_status(args)
     if args.command == "next":
         return run_next(args)
+    if args.command == "artifact":
+        return run_artifact(args, clock=clock)
     if args.command == "start":
         return run_start(args, clock=clock)
     if args.command == "continue":

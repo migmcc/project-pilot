@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from projectpilot import advisor
+from projectpilot import artifact_store
 from projectpilot.config import config_path
 from projectpilot.phases import Phase
 from projectpilot.state import ProjectState, save_state
@@ -124,6 +125,35 @@ class ArtifactRuleTests(unittest.TestCase):
             (base / "PROJECT_BRIEF.md").write_text("brief", encoding="utf-8")
             advice = advisor.advise(base)
             self.assertNotIn("Provide the Project Brief", actions(advice))
+
+    def test_registered_prd_artifact_suppresses_create_prd_skill_recommendation(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d) / "project"
+            base.mkdir()
+            make_state(base, current_phase=Phase.PLANNING)
+            lib = Path(d) / "lib"
+            skill_dir = lib / "create-prd"
+            skill_dir.mkdir(parents=True, exist_ok=True)
+            (skill_dir / "SKILL.md").write_text(
+                '---\nname: create-prd\ndescription: "Create a PRD."\n---\n\nBody.\n',
+                encoding="utf-8",
+            )
+            path = config_path(base)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("external_skill_paths:\n  - ../lib\n", encoding="utf-8")
+            evidence = base / "docs" / "PRD.md"
+            evidence.parent.mkdir()
+            evidence.write_text("external prd", encoding="utf-8")
+            artifact_store.add_artifact(
+                base,
+                evidence,
+                "planning",
+                clock=lambda: "2026-07-01T12:00:00Z",
+            )
+
+            advice = advisor.advise(base)
+
+            self.assertNotIn("Prepare the recommended skill 'create-prd'", actions(advice))
 
     def test_no_handoffs_nudges_progress(self):
         with tempfile.TemporaryDirectory() as d:

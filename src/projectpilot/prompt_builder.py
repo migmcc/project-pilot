@@ -17,6 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import artifact_store
 from .phases import NEXT_ACTION, Phase
 from .state import ProjectState, state_dir
 
@@ -61,6 +62,7 @@ class PromptContext:
     handoffs: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     produced_files: list[str] = field(default_factory=list)
+    registered_artifacts: list[str] = field(default_factory=list)
 
 
 def phase_label(phase: Phase) -> str:
@@ -117,6 +119,24 @@ def _collect_files(base: Path) -> list[str]:
     return ordered
 
 
+def _collect_artifacts(base: Path) -> list[str]:
+    """List registered artifact metadata only; never read artifact content."""
+    artifacts: list[str] = []
+    for record in artifact_store.list_artifacts(base):
+        artifacts.append(
+            " | ".join(
+                [
+                    record["id"],
+                    record["path"],
+                    record["type"],
+                    record["phase"],
+                    record["status"],
+                ]
+            )
+        )
+    return artifacts
+
+
 def collect_context(state: ProjectState, base: Path) -> PromptContext:
     """Collect grounded prompt context from recorded state and produced files.
 
@@ -134,6 +154,7 @@ def collect_context(state: ProjectState, base: Path) -> PromptContext:
         handoffs=_collect_handoffs(state),
         notes=_collect_notes(state),
         produced_files=_collect_files(base),
+        registered_artifacts=_collect_artifacts(base),
     )
 
 
@@ -163,6 +184,10 @@ def _context_block(context: PromptContext) -> list[str]:
     if context.produced_files:
         lines.append("Files produced by ProjectPilot:")
         lines += [f"- {item}" for item in context.produced_files]
+        lines.append("")
+    if context.registered_artifacts:
+        lines.append("Registered artifacts:")
+        lines += [f"- {item}" for item in context.registered_artifacts]
         lines.append("")
     while lines and lines[-1] == "":
         lines.pop()

@@ -45,6 +45,13 @@ python -m projectpilot status                       # read-only
 python -m projectpilot next                          # workflow advisor: suggest the next step
 python -m projectpilot next --json                   # deterministic machine-readable advice
 
+# Workflow evidence tracker (metadata only; does not copy/read content)
+python -m projectpilot artifact add path/to/PRD.md
+python -m projectpilot artifact list
+python -m projectpilot artifact list --json
+python -m projectpilot artifact show <artifact-id>
+python -m projectpilot artifact remove <artifact-id>
+
 # Environment diagnostics (read-only / dry-run; change nothing)
 python -m projectpilot doctor                        # Python/Git/repo + ~/.claude install status
 python -m projectpilot analyze                       # detect stack/state, suggest next action
@@ -81,6 +88,59 @@ python -m projectpilot skill use                     # wizard: choose from phase
 ```
 
 State is stored in `.project-pilot/status.json`.
+
+## Workflow evidence tracker (`pp artifact`)
+
+ProjectPilot can record evidence produced by humans, external agents, or adjacent tools while
+remaining the workflow orchestrator. Artifact tracking is an inventory of metadata only: ProjectPilot
+does **not** execute the file, validate it, approve it, copy it, modify it, upload it, or read its
+content into prompts.
+
+The inventory is stored at:
+
+```text
+.project-pilot/artifacts.json
+```
+
+Examples:
+
+```bash
+pp artifact add docs/PRD.md
+# Registered artifact: docs-prd-md
+
+pp artifact list
+pp artifact list --json
+pp artifact show docs-prd-md
+pp artifact remove docs-prd-md
+```
+
+Each record stores deterministic metadata:
+
+```json
+{
+  "id": "docs-prd-md",
+  "path": "docs/PRD.md",
+  "name": "PRD.md",
+  "type": "md",
+  "phase": "planning",
+  "registered_at": "2026-07-01T12:00:00Z",
+  "size": 1234,
+  "sha256": "...",
+  "origin": "manual",
+  "status": "registered"
+}
+```
+
+IDs are stable slugs derived from the artifact's relative path (`docs/PRD.md` →
+`docs-prd-md`). Adding the same path again updates that inventory entry with the current size and
+SHA-256; it still does not alter the original file. `remove` deletes only the inventory entry and
+leaves the artifact file in place.
+
+The tracker is how external agents fit into ProjectPilot: they can produce evidence in their own
+tools, and you can register the resulting file so ProjectPilot knows it exists. Advisor and prompt
+commands then use only the recorded metadata/path. For example, when a PRD artifact is registered,
+`pp next` will avoid recommending a skill whose purpose is to create a PRD again; generated prompts
+will list the registered artifact metadata but not include the artifact content.
 
 ## Using external skill libraries (`pp skill`)
 
@@ -249,6 +309,9 @@ Notes:
 Files produced by ProjectPilot:
 - .project-pilot/status.json
 
+Registered artifacts:
+- docs-prd-md | docs/PRD.md | md | planning | registered
+
 Skill
 -----
 … the selected skill's content …
@@ -260,8 +323,9 @@ Instructions
 
 **Only recorded facts are included, and empty sections are omitted** — nothing is invented. The
 context is drawn from the project state (name, phase, objective/idea, decision & approval reasons,
-recent history handoffs) and the ProjectPilot-produced files that actually exist on disk. Given the
-same state and skill, the output is byte-for-byte identical.
+recent history handoffs), the ProjectPilot-produced files that actually exist on disk, and registered
+artifact metadata from `.project-pilot/artifacts.json`. Artifact content is never read. Given the same
+state, skill, and inventory, the output is byte-for-byte identical.
 
 **Architecture.** Prompt assembly lives in its own layer (`prompt_builder.py`) with a single job:
 collect context, join the skill, emit Markdown. It contains **no skill discovery and no ranking** —
@@ -271,9 +335,10 @@ skills) without touching discovery or ranking.
 
 ## Workflow advisor (`pp next`)
 
-`pp next` is ProjectPilot as an **orchestrator**: it reads the current project state, spots gaps
-(pending gates, missing artifacts, un-prepared recommended skills), and tells you the next logical
-step — with a reason for each. It **executes nothing and calls no LLM**; it only advises.
+`pp next` is ProjectPilot as an **orchestrator**: it reads the current project state and registered
+artifact metadata, spots gaps (pending gates, missing artifacts, un-prepared recommended skills), and
+tells you the next logical step — with a reason for each. It **executes nothing and calls no LLM**; it
+only advises.
 
 ```bash
 pp next            # justified, prioritised recommendations for the current state
@@ -313,9 +378,9 @@ function that takes an `AdvisorContext` and returns zero or more recommendations
 
 | Rule | Fires when | Suggests |
 | --- | --- | --- |
-| `rule_use_recommended_skill` | a top skill for the phase isn't prepared yet | `pp skill use <id>` (High) |
+| `rule_use_recommended_skill` | a top skill for the phase isn't prepared yet, unless registered evidence already covers that artifact | `pp skill use <id>` (High) |
 | `rule_phase_gate` | always (per phase) | the phase's gate command (High, or Medium if a skill is pending) |
-| `rule_missing_brief` | past the brief phase with no `PROJECT_BRIEF.md` | import a brief (Medium) |
+| `rule_missing_brief` | past the brief phase with no `PROJECT_BRIEF.md` or registered brief artifact | import a brief (Medium) |
 | `rule_no_handoffs` | no lifecycle events recorded yet | `pp continue` (Low) |
 | `rule_project_done` | phase is `done` | "Project complete" (Low) |
 

@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+from . import artifact_store
 from . import recommend, skills
 from .errors import StateNotFoundError
 from .phases import Phase, next_phase
@@ -252,19 +253,51 @@ RULES: list[Callable[[AdvisorContext], list[Recommendation]]] = [
 ]
 
 
-def _top_recommended_skill(base: Path, phase: Phase) -> str | None:
+def _artifact_tokens(records: list[dict]) -> set[str]:
+    tokens: set[str] = set()
+    for record in records:
+        text = f"{record['id']} {record['path']} {record['name']}".lower()
+        for token in text.replace("_", "-").replace(".", "-").split("-"):
+            if token:
+                tokens.add(token)
+        if "product-requirements" in text:
+            tokens.add("prd")
+    return tokens
+
+
+def _duplicates_registered_artifact(skill: skills.Skill, artifact_tokens: set[str]) -> bool:
+    if not artifact_tokens:
+        return False
+    text = f"{skill.skill_id} {skill.name} {skill.description}".lower()
+    creation_signal = any(term in text for term in ("create", "write", "draft", "generate"))
+    if not creation_signal:
+        return False
+    if "prd" in artifact_tokens and "prd" in text:
+        return True
+    if "brief" in artifact_tokens and "brief" in text:
+        return True
+    return False
+
+
+def _top_recommended_skill(base: Path, phase: Phase, artifacts: list[dict]) -> str | None:
     """Return the id of the phase's top recommended skill, via public APIs only."""
     found = skills.scan_skills(base)
     if not found:
         return None
     ranked = recommend.rank(found, recommend.keywords_for_phase(base, phase))
-    return ranked[0].skill.skill_id if ranked else None
+    artifact_tokens = _artifact_tokens(artifacts)
+    for item in ranked:
+        if not _duplicates_registered_artifact(item.skill, artifact_tokens):
+            return item.skill.skill_id
+    return None
 
 
 def _build_context(base: Path, state: ProjectState) -> AdvisorContext:
     phase = state.current_phase
-    has_brief = bool(state.brief) or (base / BRIEF_FILENAME).is_file()
-    top_skill_id = _top_recommended_skill(base, phase)
+    artifacts = artifact_store.list_artifacts(base)
+    has_registered_brief = any("brief" in _artifact_tokens([record]) for record in artifacts)
+    has_brief = bool(state.brief) or (base / BRIEF_FILENAME).is_file() or has_registered_brief
+    top_skill_id = _top_recommended_skill(base, phase, artifacts)
     top_skill_prepared = bool(top_skill_id) and (
         base / _PROMPTS_SUBDIR / f"{top_skill_id}.md"
     ).is_file()

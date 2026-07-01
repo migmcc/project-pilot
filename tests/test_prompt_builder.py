@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from projectpilot import prompt_builder
+from projectpilot import artifact_store
 from projectpilot.phases import Phase
 from projectpilot.state import ProjectState, save_state
 
@@ -141,6 +142,26 @@ class CollectContextTests(unittest.TestCase):
             state = make_state()
             ctx = prompt_builder.collect_context(state, base)
             self.assertIn("projectpilot_outputs/skills/create-prd.md", ctx.produced_files)
+
+    def test_lists_registered_artifact_metadata_without_reading_content(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            artifact = base / "docs" / "PRD.md"
+            artifact.parent.mkdir()
+            artifact.write_text("SECRET CONTENT", encoding="utf-8")
+            artifact_store.add_artifact(
+                base,
+                artifact,
+                "planning",
+                clock=lambda: "2026-07-01T12:00:00Z",
+            )
+
+            ctx = prompt_builder.collect_context(make_state(), base)
+            doc = build(ctx)
+
+            self.assertIn("Registered artifacts:", doc)
+            self.assertIn("- docs-prd-md | docs/PRD.md | md | planning | registered", doc)
+            self.assertNotIn("SECRET CONTENT", doc)
 
 
 if __name__ == "__main__":
