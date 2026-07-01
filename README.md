@@ -42,6 +42,8 @@ pp --help
 # Foundation
 python -m projectpilot init "my project idea" --name "My Project"
 python -m projectpilot status                       # read-only
+python -m projectpilot dashboard                     # one aggregated project overview
+python -m projectpilot dashboard --json              # deterministic machine-readable overview
 python -m projectpilot next                          # workflow advisor: suggest the next step
 python -m projectpilot next --json                   # deterministic machine-readable advice
 
@@ -468,6 +470,69 @@ the marks degrade to `[x]`/`[ ]` automatically.
 `REQUIREMENTS` (in `phase_requirements.py`). Every consumer — `pp phase check`, the advisor's
 `rule_missing_requirements`, and the prompt builder's completion summary — updates automatically,
 because they all call `phase_requirements.evaluate(phase, artifacts)`.
+
+## Project dashboard (`pp dashboard`)
+
+`pp dashboard` is the **single entry point** for a project's status. It aggregates what the other
+commands already expose — state, phase completion, the top workflow recommendation, registered
+artifacts, and recommended skills — into one read-only overview. It introduces **no new logic**: it is
+a thin aggregator over public APIs, calls no LLM, and is fully deterministic.
+
+```bash
+pp dashboard            # aggregated overview
+pp dashboard --verbose  # + completed/missing requirements, advisor reasoning, artifact metadata
+pp dashboard --json     # deterministic JSON for tooling
+```
+
+Example:
+
+```text
+Project Health: Local Review Assistant
+
+Phase: Planning
+█████░░░░░ 50%
+
+Ready to progress:
+No
+
+Top recommendation
+
+Prepare the recommended skill 'sprint-plan'
+
+Suggested command
+
+pp skill use sprint-plan
+
+Artifacts (1)
+
+docs/PRD.md
+
+Recommended skills
+
+sprint-plan
+create-prd
+pre-mortem
+```
+
+The JSON form has a stable top-level shape — `project`, `phase`, `workflow`, `artifacts`, `skills` —
+so it is safe to consume from other tools:
+
+```json
+{
+  "project": { "name": "Local Review Assistant", "phase": "planning" },
+  "phase": { "completion": 50, "ready_to_progress": false },
+  "workflow": { "priority": "High", "action": "…", "reason": "…", "command": "pp skill use sprint-plan" },
+  "artifacts": { "total": 1, "items": ["docs/PRD.md"] },
+  "skills": { "recommended": ["sprint-plan", "create-prd", "pre-mortem"] }
+}
+```
+
+**Relationship with the other commands.** The dashboard is a convenience view — every value it shows
+comes from a command you can also run on its own: `pp status` (state), `pp phase check` (completion /
+readiness), `pp next` (workflow recommendation), `pp artifact list` (evidence), and
+`pp skill recommend` (skills). On a legacy console that cannot render `█`/`░`, the progress bar
+degrades to `#`/`-` automatically. Like the artifact tracker, the dashboard reads only artifact
+**metadata** — never file contents.
 
 ## Installing the A-team (`pp setup ateam`)
 

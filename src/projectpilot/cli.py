@@ -18,6 +18,7 @@ from .commands.artifact_cmd import run_artifact
 from .commands.brief_cmd import run_brief_import
 from .commands.continue_cmd import run_continue
 from .commands.check_ateam_cmd import run_check_ateam
+from .commands.dashboard_cmd import run_dashboard
 from .commands.decision_cmd import run_decision_set
 from .commands.doctor_cmd import run_doctor
 from .commands.done_cmd import run_done_approve
@@ -70,6 +71,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_next.add_argument("--json", action="store_true", help="Emit deterministic JSON.")
     p_next.add_argument(
         "--verbose", action="store_true", help="Include each recommendation's dependencies."
+    )
+
+    p_dashboard = subparsers.add_parser(
+        "dashboard", help="Aggregated project overview (read-only)."
+    )
+    p_dashboard.add_argument("--dir", default=".", help="Project directory (default: current).")
+    p_dashboard.add_argument("--json", action="store_true", help="Emit deterministic JSON.")
+    p_dashboard.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Include requirements, advisor reasoning, and artifact metadata.",
     )
 
     p_artifact = subparsers.add_parser(
@@ -399,6 +411,8 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
         return run_status(args)
     if args.command == "next":
         return run_next(args)
+    if args.command == "dashboard":
+        return run_dashboard(args)
     if args.command == "artifact":
         return run_artifact(args, clock=clock)
     if args.command == "phase" and args.phase_command == "check":

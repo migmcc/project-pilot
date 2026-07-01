@@ -6,6 +6,16 @@ local baselines and are not published.
 ## [Unreleased]
 
 ### Added
+- **Project Dashboard (`pp dashboard`)** — a single, aggregated, read-only project overview. A new
+  `dashboard.py` layer is a thin **aggregator**: it introduces no workflow logic and duplicates
+  nothing, consuming only public APIs (`state.load_state`, `phase_requirements.evaluate`,
+  `advisor.advise`, `artifact_store.list_artifacts`, `skills.scan_skills` + `recommend.rank`) to
+  assemble project name/phase, completion % and readiness, the top workflow recommendation, registered
+  artifacts, and recommended skills. Text mode shows a progress bar (degrading to ASCII on legacy
+  consoles); `--verbose` adds completed/missing requirements, advisor reasoning, and an artifact
+  metadata summary (metadata only — never file contents); `--json` emits a deterministic
+  `{project, phase, workflow, artifacts, skills}` payload with stable ordering. No LLM, no network, no
+  process spawning, stdlib only.
 - **Phase Requirements Engine (`pp phase check`)** — a deterministic engine (`phase_requirements.py`)
   that defines which artifacts each lifecycle phase expects (required + optional, with a completion
   threshold) and evaluates completeness against the registered artifact inventory. It reads only
