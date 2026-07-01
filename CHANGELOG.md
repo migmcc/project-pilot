@@ -2,14 +2,30 @@
 
 All notable changes to ProjectPilot are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
-[Semantic Versioning](https://semver.org/). ProjectPilot is local-first and stdlib-only;
-**v1.0.0 is the first stable release**.
+[Semantic Versioning](https://semver.org/). ProjectPilot is local-first and stdlib-only. The current
+release is **v1.0.0-rc.1**, a release candidate under final validation; the final **v1.0.0** will be
+tagged only after RC validation passes.
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-07-01
+## [1.0.0] - unreleased
 
-First stable release. Since v0.2.0 (autopilot + environment diagnostics), ProjectPilot gained a
+_Prepared for the first stable release, **not yet tagged.** It is being validated through
+**v1.0.0-rc.1** (below). The `v1.0.0` tag will be created only after RC validation passes; no changes
+are planned between RC1 and 1.0.0 beyond fixes surfaced during validation. The full change list for
+1.0.0 is documented under the RC1 entry._
+
+## [1.0.0-rc.1] - 2026-07-01
+
+**Release candidate 1 for v1.0.0.** This is a **release candidate**, not the final release.
+
+- **No new functionality** was added relative to the prepared v1.0.0 work — RC1 packages exactly the
+  1.0.0 changes below for validation.
+- **Goal:** final validation (tests, examples, docs, packaging) before v1.0.0.
+- **Next:** the final **v1.0.0** will follow after RC1 validation; only validation fixes, if any, will
+  land in between.
+
+First stable release scope. Since v0.2.0 (autopilot + environment diagnostics), ProjectPilot gained a
 complete, deterministic skills-and-evidence workflow layer — external skill libraries, phase-aware
 recommendations, prompt building, a workflow advisor, an artifact evidence tracker, a phase
 requirements engine, and a unified dashboard — followed by an architecture review that consolidated
@@ -222,6 +238,7 @@ project's lifecycle (`idea → done`). It never executes technically and does no
 - Tests use the standard library **`unittest`** only (no pytest).
 - No commits/push/release/tag from the runtime; no GitHub API; no AgentDesk; no A-team installation.
 
-[1.0.0]: https://github.com/migmcc/project-pilot/releases/tag/v1.0.0
+[1.0.0]: unreleased (pending RC validation)
+[1.0.0-rc.1]: https://github.com/migmcc/project-pilot/releases/tag/v1.0.0-rc.1
 [0.2.0]: local baseline (not published)
 [0.1.0]: local baseline (not published)

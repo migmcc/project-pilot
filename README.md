@@ -4,10 +4,11 @@ A local, deterministic CLI that orchestrates and **enforces** a project's lifecy
 existing tooling ecosystem. It does not execute technically and never reimplements the A-Team or
 AgentDesk — it is a process conductor with explicit approval gates.
 
-> **Status:** **v1.0.0 — first stable release.** Full lifecycle (`idea → done`), Python 3.12+,
-> stdlib-only, zero runtime dependencies, deterministic output.
-> **Local-first:** designed for a local/private repository; ProjectPilot never publishes, pushes,
-> tags, releases, or installs anything itself.
+> **Status:** **v1.0.0-rc.1 — release candidate** under final validation before the stable v1.0.0.
+> Full lifecycle (`idea → done`), Python 3.12+, stdlib-only, zero runtime dependencies, deterministic
+> output. **Local-first:** designed for a local/private repository; ProjectPilot never publishes,
+> pushes, tags, releases, or installs anything itself. Licensed under the [MIT License](LICENSE) but
+> not distributed on PyPI.
 
 ## Charter
 
