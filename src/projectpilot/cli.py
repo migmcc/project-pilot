@@ -31,6 +31,7 @@ from .commands.skill_cmd import (
     run_skill_recommend,
     run_skill_run,
     run_skill_sources,
+    run_skill_use,
 )
 from .commands.start_cmd import run_start
 from .commands.status_cmd import run_status
@@ -280,6 +281,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     s_recommend.add_argument("--dir", default=".", help="Project directory (default: current).")
 
+    s_use = skill_subparsers.add_parser(
+        "use",
+        help="Wizard: pick a skill and build a consolidated prompt (no LLM, no execution).",
+    )
+    s_use.add_argument(
+        "skill_id",
+        nargs="?",
+        default=None,
+        help="Skill id to use; omit to choose from the current phase's recommendations.",
+    )
+    s_use.add_argument(
+        "--output",
+        default=None,
+        help="Write the prompt to this path instead of projectpilot_outputs/prompts/.",
+    )
+    s_use.add_argument(
+        "--print",
+        action="store_true",
+        help="Print the prompt to stdout instead of writing a file.",
+    )
+    s_use.add_argument("--dir", default=".", help="Project directory (default: current).")
+
     return parser
 
 
@@ -352,5 +375,7 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
             return run_skill_run(args)
         if args.skill_command == "recommend":
             return run_skill_recommend(args)
+        if args.skill_command == "use":
+            return run_skill_use(args)
     parser.error(f"unknown command: {args.command!r}")  # pragma: no cover
     return 2  # pragma: no cover

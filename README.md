@@ -74,6 +74,8 @@ python -m projectpilot skill info <skill-id>         # show one skill's details
 python -m projectpilot skill run <skill-id>          # prepare a skill as reusable context
 python -m projectpilot skill run <skill-id> --print  # print it instead of writing a file
 python -m projectpilot skill recommend               # suggest skills for the current phase
+python -m projectpilot skill use <skill-id>          # build a consolidated prompt for a skill
+python -m projectpilot skill use                     # wizard: choose from phase recommendations
 ```
 
 State is stored in `.project-pilot/status.json`.
@@ -196,6 +198,74 @@ any external library is rankable with no per-library code. Point `external_skill
 library and `pp skill recommend` works against it immediately. The ranking core (`recommend.rank`) is
 a single pure function, so it can later be swapped for a smarter ranker without touching the scanner,
 the commands, or the configuration.
+
+### Skill execution wizard (`pp skill use`)
+
+`pp skill use` is the bridge from "which skill?" to "a prompt I can run". It selects a skill and
+assembles a **consolidated, agent-ready prompt** that combines the project's recorded context with the
+skill's content. It **calls no model and executes nothing** — ProjectPilot stays the orchestrator; you
+run the prompt in Claude Code, Codex, ChatGPT, or any other agent.
+
+```bash
+pp skill use create-prd                 # build a prompt for a specific skill
+pp skill use                            # wizard: pick from the current phase's recommendations
+pp skill use create-prd --print         # print the prompt instead of writing a file
+pp skill use create-prd --output foo.md # write to a custom path
+```
+
+With no id, the wizard prints the phase's recommendations and (on an interactive terminal) lets you
+pick one by number; on a non-interactive shell it lists them and asks you to pass an id explicitly, so
+it never blocks in scripts. By default the prompt is written to
+`projectpilot_outputs/prompts/<skill-id>.md`.
+
+The generated document has a fixed, deterministic shape:
+
+```text
+Project: Local Review Assistant
+
+Current phase:
+Planning
+
+Selected skill:
+create-prd
+
+Project context
+---------------
+
+Objective:
+A local code review assistant
+
+Current state:
+Check readiness with `pp check-ateam`, then `pp execution approve`.
+
+Recent handoffs:
+- 2026-06-30T09:30:00Z validated (phase: validation)
+
+Notes:
+- Decision APPROVED: Strong fit; clear scope.
+
+Files produced by ProjectPilot:
+- .project-pilot/status.json
+
+Skill
+-----
+… the selected skill's content …
+
+Instructions
+------------
+… deterministic guidance; reiterates that ProjectPilot runs no model …
+```
+
+**Only recorded facts are included, and empty sections are omitted** — nothing is invented. The
+context is drawn from the project state (name, phase, objective/idea, decision & approval reasons,
+recent history handoffs) and the ProjectPilot-produced files that actually exist on disk. Given the
+same state and skill, the output is byte-for-byte identical.
+
+**Architecture.** Prompt assembly lives in its own layer (`prompt_builder.py`) with a single job:
+collect context, join the skill, emit Markdown. It contains **no skill discovery and no ranking** —
+the scanner (`skills.py`) finds skills, the recommender (`recommend.py`) ranks them, and the builder
+just assembles. That separation means the prompt format can evolve (templates, variables, multiple
+skills) without touching discovery or ranking.
 
 ## Installing the A-team (`pp setup ateam`)
 

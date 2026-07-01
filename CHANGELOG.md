@@ -14,6 +14,17 @@ local baselines and are not published.
   Still stdlib-only and read-only — no subprocess, no `git` invocation.
 
 ### Added
+- **Skill execution wizard (`pp skill use`)** — selects a skill and builds a consolidated,
+  agent-ready prompt that combines the project's recorded context with the skill's content. **Calls no
+  model and executes nothing** — the prompt is meant to be run in Claude Code, Codex, ChatGPT, or any
+  other agent. With no id it runs a wizard over the current phase's recommendations (interactive
+  numbered pick on a TTY; lists-and-exits on a non-interactive shell). Output goes to
+  `projectpilot_outputs/prompts/<skill-id>.md` by default, or `--output <path>` / `--print`. A new
+  decoupled `prompt_builder.py` layer owns context collection and Markdown assembly only (no skill
+  discovery, no ranking); it includes only recorded facts (name, phase, objective, decision/approval
+  reasons, recent handoffs, produced files), omits empty sections, invents nothing, and is
+  deterministic. Added `skills.skill_body()` to extract a skill's frontmatter-stripped body for
+  embedding.
 - **Skill recommendations (`pp skill recommend`)** — suggests which discovered skills are most
   relevant to the project's current lifecycle phase. Recommend-only (never runs a skill), deterministic,
   and **no AI / embeddings / LLM**. A new `recommend.py` layer is decoupled from the scanner: the

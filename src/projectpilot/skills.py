@@ -304,6 +304,20 @@ def find_skill(base: Path, skill_id: str) -> Skill | None:
     return None
 
 
+def skill_body(skill: Skill) -> str:
+    """Return the skill's markdown body with any YAML frontmatter stripped.
+
+    Useful for embedding a skill inside a larger document (e.g. a consolidated
+    prompt) without duplicating the manifest header. Read-only; never raises.
+    """
+    try:
+        text = skill.path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        text = ""
+    _, body = _split_frontmatter(text)
+    return body.strip()
+
+
 def render_skill(skill: Skill) -> str:
     """Render a skill into a single consolidated, prompt-ready markdown document.
 
