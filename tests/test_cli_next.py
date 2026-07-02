@@ -96,5 +96,34 @@ class NextJsonTests(NextCliFixture):
             self.assertEqual(len(payload["recommendations"]), 1)
 
 
+class NextPlanningSequenceTests(NextCliFixture):
+    """PP-AUDIT-002: the suggested commands are executable in the given order."""
+
+    def test_readiness_check_precedes_execution_approval(self):
+        with tempfile.TemporaryDirectory() as d:
+            seed_state(Path(d))  # planning, no artifacts, no readiness check
+            rc, text = self._run(["next", "--json", "--dir", d])
+            self.assertEqual(rc, 0)
+            payload = json.loads(text)
+            commands = [r["command"] for r in payload["recommendations"]]
+            check = commands.index("pp check-ateam")
+            approve = next(
+                i for i, c in enumerate(commands) if c and "approve execution" in c
+            )
+            self.assertLess(check, approve)
+
+    def test_json_recommendation_shape_is_stable(self):
+        with tempfile.TemporaryDirectory() as d:
+            seed_state(Path(d))
+            _, text = self._run(["next", "--json", "--dir", d])
+            payload = json.loads(text)
+            self.assertEqual(list(payload.keys()), ["phase", "followup", "recommendations"])
+            for rec in payload["recommendations"]:
+                self.assertEqual(
+                    list(rec.keys()),
+                    ["priority", "action", "reason", "command", "depends_on"],
+                )
+
+
 if __name__ == "__main__":
     unittest.main()

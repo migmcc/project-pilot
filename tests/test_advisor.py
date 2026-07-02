@@ -44,6 +44,27 @@ def actions(advice):
     return [r.action for r in advice.recommendations]
 
 
+def commands(advice):
+    return [r.command for r in advice.recommendations]
+
+
+#: A recorded, passing readiness check (as `pp check-ateam` would write it).
+READY_CHECK = {"ready": True, "checked_at": "2026-06-30T00:00:00Z", "missing_paths": []}
+
+
+def register(base: Path, rel: str):
+    """Create and register an artifact so a planning requirement is satisfied."""
+    path = base / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("content", encoding="utf-8")
+    artifact_store.add_artifact(base, path, "planning", clock=lambda: "2026-07-01T00:00:00Z")
+
+
+def complete_planning_evidence(base: Path):
+    register(base, "docs/PRD.md")
+    register(base, "docs/roadmap.md")
+
+
 class EmptyProjectTests(unittest.TestCase):
     def test_no_state_recommends_init(self):
         with tempfile.TemporaryDirectory() as d:
@@ -175,7 +196,10 @@ class SkillRuleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             base = Path(d) / "project"
             base.mkdir()
-            make_state(base, current_phase=Phase.PLANNING)
+            # Evidence and readiness are complete, so only the pending skill
+            # demotes the gate.
+            make_state(base, current_phase=Phase.PLANNING, ateam_check=dict(READY_CHECK))
+            complete_planning_evidence(base)
             configure_lib(base, Path(d))
             advice = advisor.advise(base)
             self.assertEqual(advice.recommendations[0].priority, advisor.PRIORITY_HIGH)
@@ -188,7 +212,8 @@ class SkillRuleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             base = Path(d) / "project"
             base.mkdir()
-            make_state(base, current_phase=Phase.PLANNING)
+            make_state(base, current_phase=Phase.PLANNING, ateam_check=dict(READY_CHECK))
+            complete_planning_evidence(base)
             configure_lib(base, Path(d))
             prompts = base / "projectpilot_outputs" / "prompts"
             prompts.mkdir(parents=True)
@@ -199,6 +224,81 @@ class SkillRuleTests(unittest.TestCase):
             )
             gate = next(r for r in advice.recommendations if "execution" in (r.command or ""))
             self.assertEqual(gate.priority, advisor.PRIORITY_HIGH)
+
+
+class PlanningOrderTests(unittest.TestCase):
+    """PP-AUDIT-002: Planning -> Execution guidance is executable in order."""
+
+    def _gate(self, advice):
+        return next(r for r in advice.recommendations if "approve execution" in (r.command or ""))
+
+    def test_zero_artifacts_puts_evidence_first_and_gate_last(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            make_state(base, current_phase=Phase.PLANNING)
+            advice = advisor.advise(base)
+            self.assertEqual(
+                advice.recommendations[0].action, "Produce the required 'PRD' artifact"
+            )
+            self.assertEqual(self._gate(advice).priority, advisor.PRIORITY_LOW)
+            order = commands(advice)
+            self.assertLess(
+                order.index("pp check-ateam"),
+                order.index('pp approve execution --reason "..."'),
+            )
+            self.assertLess(
+                actions(advice).index("Produce the required 'Roadmap' artifact"),
+                actions(advice).index("Run the execution readiness check"),
+            )
+
+    def test_one_missing_artifact_recommended_before_gate(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            make_state(base, current_phase=Phase.PLANNING)
+            register(base, "docs/PRD.md")
+            advice = advisor.advise(base)
+            self.assertEqual(
+                advice.recommendations[0].action, "Produce the required 'Roadmap' artifact"
+            )
+            self.assertNotIn("Produce the required 'PRD' artifact", actions(advice))
+            self.assertEqual(self._gate(advice).priority, advisor.PRIORITY_LOW)
+
+    def test_evidence_complete_recommends_readiness_check_first(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            make_state(base, current_phase=Phase.PLANNING)
+            complete_planning_evidence(base)
+            advice = advisor.advise(base)
+            top = advice.recommendations[0]
+            self.assertEqual(top.action, "Run the execution readiness check")
+            self.assertEqual(top.priority, advisor.PRIORITY_HIGH)
+            self.assertEqual(top.command, "pp check-ateam")
+            self.assertEqual(self._gate(advice).priority, advisor.PRIORITY_MEDIUM)
+
+    def test_evidence_and_readiness_complete_promotes_gate(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            make_state(base, current_phase=Phase.PLANNING, ateam_check=dict(READY_CHECK))
+            complete_planning_evidence(base)
+            advice = advisor.advise(base)
+            top = advice.recommendations[0]
+            self.assertEqual(top.action, "Approve the move to execution")
+            self.assertEqual(top.priority, advisor.PRIORITY_HIGH)
+            # Approval still requires an explicit human reason.
+            self.assertIn("--reason", top.command)
+            self.assertNotIn("pp check-ateam", commands(advice))
+
+    def test_failed_readiness_check_recommends_rerun(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            failed = {"ready": False, "checked_at": "t", "missing_paths": ["INIT.md"]}
+            make_state(base, current_phase=Phase.PLANNING, ateam_check=failed)
+            complete_planning_evidence(base)
+            advice = advisor.advise(base)
+            self.assertEqual(
+                advice.recommendations[0].action, "Re-run the execution readiness check"
+            )
+            self.assertEqual(self._gate(advice).priority, advisor.PRIORITY_MEDIUM)
 
 
 class OrderingAndStabilityTests(unittest.TestCase):

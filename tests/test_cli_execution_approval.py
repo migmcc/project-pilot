@@ -189,6 +189,42 @@ class ExecutionApprovalTests(unittest.TestCase):
             self.assertIn("Execution approval: approved", text)
             self.assertIn("all files present", text)
 
+    def test_execution_approve_warns_when_requirements_incomplete(self):
+        # Advisory only: the approval is still recorded and the phase advances.
+        with tempfile.TemporaryDirectory() as d:
+            _reach_planning(d)
+            _make_ateam_ready(d)
+            _check_ateam(d)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc = main(
+                    ["execution", "approve", "--reason", "go", "--dir", d],
+                    clock=clock,
+                )
+            self.assertEqual(rc, 0)
+            self.assertIn("Warning: planning requirements are incomplete", out.getvalue())
+            self.assertEqual(_read(d)["current_phase"], "execution")
+
+    def test_execution_approve_no_warning_when_requirements_complete(self):
+        with tempfile.TemporaryDirectory() as d:
+            _reach_planning(d)
+            _make_ateam_ready(d)
+            _check_ateam(d)
+            for rel in ("docs/PRD.md", "docs/roadmap.md"):
+                path = Path(d) / rel
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("content", encoding="utf-8")
+                with contextlib.redirect_stdout(io.StringIO()):
+                    main(["artifact", "add", str(path), "--dir", d], clock=clock)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc = main(
+                    ["execution", "approve", "--reason", "go", "--dir", d],
+                    clock=clock,
+                )
+            self.assertEqual(rc, 0)
+            self.assertNotIn("Warning:", out.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -41,6 +41,7 @@ __all__ = [
     "rule_use_recommended_skill",
     "rule_phase_gate",
     "rule_missing_requirements",
+    "rule_execution_readiness",
     "rule_missing_brief",
     "rule_no_handoffs",
     "rule_project_done",
@@ -123,6 +124,12 @@ class AdvisorContext:
 # Rules. Each is small and independent; append to RULES to add a new one.
 # --------------------------------------------------------------------------- #
 
+def _execution_readiness_ready(state: ProjectState) -> bool:
+    """True when a readiness check is recorded and passed (``pp check-ateam``)."""
+    check = state.ateam_check
+    return bool(check) and bool(check.get("ready", False))
+
+
 def rule_use_recommended_skill(ctx: AdvisorContext) -> list[Recommendation]:
     """Suggest preparing the phase's top recommended skill (if not done yet)."""
     if not ctx.skill_ready_to_prepare:
@@ -197,13 +204,25 @@ def _phase_gate(ctx: AdvisorContext) -> tuple[str, str, str | None] | None:
 
 
 def rule_phase_gate(ctx: AdvisorContext) -> list[Recommendation]:
-    """Recommend the current phase's formal next step / gate."""
+    """Recommend the current phase's formal next step / gate.
+
+    The gate is the top action only when nothing must happen first. At the
+    Planning phase, execution approval is demoted below the missing required
+    evidence (Low) and below a pending readiness check (Medium), so the
+    suggested-command sequence stays executable in order.
+    """
     gate = _phase_gate(ctx)
     if gate is None:
         return []
     action, reason, command = gate
-    # The gate is the top action unless there is a skill to prepare first.
-    priority = PRIORITY_MEDIUM if ctx.skill_ready_to_prepare else PRIORITY_HIGH
+    if ctx.phase is Phase.PLANNING and not ctx.evaluation.ready_to_progress:
+        priority = PRIORITY_LOW
+    elif ctx.skill_ready_to_prepare:
+        priority = PRIORITY_MEDIUM
+    elif ctx.phase is Phase.PLANNING and not _execution_readiness_ready(ctx.state):
+        priority = PRIORITY_MEDIUM
+    else:
+        priority = PRIORITY_HIGH
     return [
         Recommendation(
             priority=priority,
@@ -241,6 +260,40 @@ def rule_missing_requirements(ctx: AdvisorContext) -> list[Recommendation]:
             )
         )
     return recommendations
+
+
+def rule_execution_readiness(ctx: AdvisorContext) -> list[Recommendation]:
+    """Recommend ``pp check-ateam`` before execution approval at Planning.
+
+    Fires while the Planning phase has no passing readiness check recorded, so
+    the suggested-command sequence never puts ``pp approve execution`` ahead of
+    the prerequisite it would fail without. High priority once the required
+    evidence is in place; Medium while evidence still has to come first.
+    """
+    if ctx.phase is not Phase.PLANNING or _execution_readiness_ready(ctx.state):
+        return []
+    if not ctx.state.ateam_check:
+        action = "Run the execution readiness check"
+        reason = (
+            "Execution approval requires a recorded readiness check, and none "
+            "has been run yet."
+        )
+    else:
+        action = "Re-run the execution readiness check"
+        reason = (
+            "The last readiness check did not pass; fix the missing paths and "
+            "re-run it (or approve with --override)."
+        )
+    priority = PRIORITY_HIGH if ctx.evaluation.ready_to_progress else PRIORITY_MEDIUM
+    return [
+        Recommendation(
+            priority=priority,
+            action=action,
+            reason=reason,
+            command="pp check-ateam",
+            depends_on=f"Current {phase_label(ctx.phase)} phase",
+        )
+    ]
 
 
 def rule_missing_brief(ctx: AdvisorContext) -> list[Recommendation]:
@@ -293,6 +346,7 @@ RULES: list[Callable[[AdvisorContext], list[Recommendation]]] = [
     rule_use_recommended_skill,
     rule_phase_gate,
     rule_missing_requirements,
+    rule_execution_readiness,
     rule_missing_brief,
     rule_no_handoffs,
     rule_project_done,

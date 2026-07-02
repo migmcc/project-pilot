@@ -523,13 +523,22 @@ Recommended next action
    Reason: 'sprint-plan' is the top recommended skill for the Planning phase, and no prompt has been prepared for it yet.
    Suggested command: pp skill use sprint-plan
 
-2. Approve the move to execution
+2. Run the execution readiness check
+   Priority: High
+   Reason: Execution approval requires a recorded readiness check, and none has been run yet.
+   Suggested command: pp check-ateam
+
+3. Approve the move to execution
    Priority: Medium
    Reason: Planning must be signed off before execution begins.
    Suggested command: pp approve execution --reason "..."
 
 After clearing the Planning gate, ProjectPilot advances to the Execution phase. Review the work before advancing.
 ```
+
+(The example assumes the Planning evidence — PRD and Roadmap — is already registered. While required
+evidence is still missing, producing it ranks first and the approval is demoted further; the top
+recommendations are always executable in the order shown.)
 
 Each recommendation carries a **priority** (High / Medium / Low), an **action**, a **reason**, an
 optional **suggested command**, and (with `--verbose` or in JSON) its **dependencies**.
@@ -544,8 +553,9 @@ function that takes an `AdvisorContext` and returns zero or more recommendations
 | Rule | Fires when | Suggests |
 | --- | --- | --- |
 | `rule_use_recommended_skill` | a top skill for the phase isn't prepared yet, unless registered evidence already covers that artifact | `pp skill use <id>` (High) |
-| `rule_phase_gate` | always (per phase) | the phase's gate command (High, or Medium if a skill is pending) |
+| `rule_phase_gate` | always (per phase) | the phase's gate command (High; Medium if a skill is pending; at Planning, Medium until the readiness check passes and Low while required evidence is missing) |
 | `rule_missing_requirements` | the Phase Requirements Engine reports a required artifact missing | produce/register it (Medium) |
+| `rule_execution_readiness` | Planning has no passing readiness check recorded | `pp check-ateam` (High once evidence is complete, else Medium) |
 | `rule_missing_brief` | past the brief phase with no `PROJECT_BRIEF.md` or registered brief artifact | import a brief (Medium) |
 | `rule_no_handoffs` | no lifecycle events recorded yet | `pp continue` (Low) |
 | `rule_project_done` | phase is `done` | "Project complete" (Low) |

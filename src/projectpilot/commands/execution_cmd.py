@@ -3,9 +3,31 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..errors import StateNotFoundError
+from .. import artifact_store, phase_requirements
+from ..errors import StateCorruptedError, StateNotFoundError
 from ..phases import Phase
 from ..state import Clock, load_state, save_state
+
+
+def _requirements_warning(base: Path) -> str | None:
+    """Advisory only: warn when planning evidence is incomplete at approval.
+
+    Never blocks the approval. A corrupted inventory is skipped here on
+    purpose -- it is advisory context, and the corruption is reported loudly
+    by every command that actually reads the inventory.
+    """
+    try:
+        artifacts = artifact_store.list_artifacts(base)
+    except StateCorruptedError:
+        return None
+    evaluation = phase_requirements.evaluate(Phase.PLANNING, artifacts)
+    if evaluation.ready_to_progress:
+        return None
+    missing = ", ".join(status.label for status in evaluation.missing)
+    return (
+        f"Warning: planning requirements are incomplete (missing: {missing}). "
+        "The approval was recorded anyway."
+    )
 
 
 def run_execution_approve(args, *, clock: Clock) -> int:
@@ -59,5 +81,8 @@ def run_execution_approve(args, *, clock: Clock) -> int:
     print("Execution approved manually.")
     if args.override:
         print("Override recorded.")
+    warning = _requirements_warning(base)
+    if warning:
+        print(warning)
     print("Advanced to phase 'execution'.")
     return 0
