@@ -27,7 +27,8 @@ def run_execution_approve(args, *, clock: Clock) -> int:
         print("No A-team readiness check found. Run `pp check-ateam` first.")
         return 1
 
-    ateam_ready = bool(state.ateam_check["ready"])
+    # A hand-edited check without a 'ready' flag counts as not ready (strict gate).
+    ateam_ready = bool(state.ateam_check.get("ready", False))
     if not ateam_ready and not args.override:
         print(
             "A-team check is not ready. Re-run with --override to approve manually."

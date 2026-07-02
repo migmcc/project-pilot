@@ -41,6 +41,7 @@ from .commands.skill_cmd import (
 from .commands.start_cmd import run_start
 from .commands.status_cmd import run_status
 from .commands.validate_cmd import run_validate
+from .errors import ProjectPilotError, StateCorruptedError
 from .state import Clock, utc_now_iso
 
 
@@ -392,6 +393,21 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
     console.make_output_resilient()
     parser = build_parser()
     args = parser.parse_args(argv)
+    try:
+        return _dispatch(parser, args, clock)
+    except StateCorruptedError as exc:
+        # Expected user-facing failure: a data file exists but cannot be used.
+        # Unexpected programmer errors are deliberately NOT caught here.
+        print(f"Corrupted ProjectPilot file: {exc.path}")
+        print(f"Problem: {exc.reason}")
+        print(exc.hint)
+        return 1
+    except ProjectPilotError as exc:
+        print(str(exc))
+        return 1
+
+
+def _dispatch(parser: argparse.ArgumentParser, args, clock: Clock) -> int:
     if args.command == "init":
         return run_init(args, clock=clock)
     if args.command == "status":

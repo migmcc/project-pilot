@@ -11,7 +11,8 @@ import re
 from pathlib import Path
 from typing import Callable
 
-from .state import state_dir, utc_now_iso
+from .errors import StateCorruptedError
+from .state import atomic_write_text, state_dir, utc_now_iso
 
 
 __all__ = [
@@ -34,6 +35,12 @@ __all__ = [
 ARTIFACTS_FILENAME = "artifacts.json"
 ORIGIN_MANUAL = "manual"
 STATUS_REGISTERED = "registered"
+
+#: Recovery hint shown when ``artifacts.json`` cannot be used.
+_INVENTORY_HINT = (
+    "Repair the file by hand or delete it and re-register the evidence with "
+    "`pp artifact add <path>`."
+)
 
 Clock = Callable[[], str]
 
@@ -104,14 +111,33 @@ def load_inventory(base: Path) -> dict:
 
     Missing inventories are treated as empty. Records are returned sorted by
     relative path so callers get stable ordering even if a file was edited by
-    hand.
+    hand. Raises :class:`StateCorruptedError` when the file exists but is
+    malformed JSON or its records are missing required fields.
     """
     path = artifacts_path(base)
     if not path.exists():
         return {"artifacts": []}
-    data = json.loads(path.read_text(encoding="utf-8"))
-    records = data.get("artifacts", [])
-    return {"artifacts": _sort_records(list(records))}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise StateCorruptedError(
+            path,
+            f"the file is not valid JSON ({exc.msg} at line {exc.lineno}, column {exc.colno})",
+            _INVENTORY_HINT,
+        ) from exc
+    try:
+        records = data.get("artifacts", [])
+        return {"artifacts": _sort_records(list(records))}
+    except KeyError as exc:
+        raise StateCorruptedError(
+            path,
+            f"an artifact record is missing the required field {exc.args[0]!r}",
+            _INVENTORY_HINT,
+        ) from exc
+    except (TypeError, AttributeError) as exc:
+        raise StateCorruptedError(
+            path, f"the file does not have the expected structure ({exc})", _INVENTORY_HINT
+        ) from exc
 
 
 def dumps_inventory(base: Path) -> str:
@@ -120,13 +146,13 @@ def dumps_inventory(base: Path) -> str:
 
 
 def save_inventory(base: Path, inventory: dict) -> Path:
-    """Save ``inventory`` to ``.project-pilot/artifacts.json``."""
+    """Save ``inventory`` to ``.project-pilot/artifacts.json`` atomically."""
     directory = state_dir(base)
     directory.mkdir(parents=True, exist_ok=True)
     path = artifacts_path(base)
     records = _sort_records(list(inventory.get("artifacts", [])))
     payload = {"artifacts": records}
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    atomic_write_text(path, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
     return path
 
 

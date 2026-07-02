@@ -65,7 +65,7 @@ def _gate_for(phase: Phase, state: ProjectState) -> tuple[str, str]:
     if phase is Phase.VALIDATION:
         decision = state.decision
         if decision and decision.get("decision") != "APPROVED":
-            value = decision["decision"]
+            value = decision.get("decision", "(unknown)")
             return (
                 f"Decision is {value}; APPROVED required",
                 f"The recorded decision is {value}. Return to validation/rework, "

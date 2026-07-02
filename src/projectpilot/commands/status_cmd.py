@@ -13,51 +13,52 @@ def _decision_line(decision: dict | None) -> str:
         return "Decision: none"
     reason = decision.get("reason", "")
     suffix = f" -- {reason}" if reason else ""
-    return f"Decision: {decision['decision']} (source: {decision.get('source', 'unknown')}){suffix}"
+    verdict = decision.get("decision", "(unknown)")
+    return f"Decision: {verdict} (source: {decision.get('source', 'unknown')}){suffix}"
 
 
 def _brief_line(brief: dict | None) -> str:
     if not brief:
         return "Brief: not imported"
     source = brief.get("source_path", "unknown source")
-    return f"Brief: {brief['brief_path']} imported from {source}"
+    return f"Brief: {brief.get('brief_path', '(unknown)')} imported from {source}"
 
 
 def _setup_advice_line(setup_advice: dict | None) -> str:
     if not setup_advice:
         return "Setup advice: not prepared"
-    return f"Setup advice: prepared at {setup_advice['prepared_at']}"
+    return f"Setup advice: prepared at {setup_advice.get('prepared_at', '(unknown)')}"
 
 
 def _ateam_check_line(ateam_check: dict | None) -> str:
     if not ateam_check:
         return "A-team check: not run"
-    if ateam_check["ready"]:
+    if ateam_check.get("ready", False):
         return "A-team check: ready"
-    missing = ", ".join(ateam_check["missing_paths"])
+    missing = ", ".join(ateam_check.get("missing_paths", [])) or "(unknown)"
     return f"A-team check: not ready (missing: {missing})"
 
 
 def _execution_approval_line(execution_approval: dict | None) -> str:
     if not execution_approval:
         return "Execution approval: not approved"
-    override = " with override" if execution_approval["override"] else ""
-    return (
-        "Execution approval: approved"
-        f"{override} -- {execution_approval['reason']}"
-    )
+    override = " with override" if execution_approval.get("override", False) else ""
+    reason = execution_approval.get("reason", "(no reason recorded)")
+    return f"Execution approval: approved{override} -- {reason}"
 
 
 def _final_validation_line(final_validation: dict | None) -> str:
     if not final_validation:
         return "Final validation: not prepared"
-    return f"Final validation: prepared at {final_validation['prepared_at']}"
+    return f"Final validation: prepared at {final_validation.get('prepared_at', '(unknown)')}"
 
 
 def _done_approval_line(done_approval: dict | None) -> str:
     if not done_approval:
         return "Done approval: not approved"
-    return f"Done approval: approved at {done_approval['approved_at']} -- {done_approval['reason']}"
+    approved_at = done_approval.get("approved_at", "(unknown)")
+    reason = done_approval.get("reason", "(no reason recorded)")
+    return f"Done approval: approved at {approved_at} -- {reason}"
 
 
 def _active_gate(state) -> str:
@@ -67,9 +68,9 @@ def _active_gate(state) -> str:
     decision = state.decision
     if not decision:
         return "Waiting for a recorded validation decision."
-    if decision["decision"] == "APPROVED":
+    if decision.get("decision") == "APPROVED":
         return "APPROVED decision recorded; `pp advance brief` is available."
-    return f"Decision is {decision['decision']}; APPROVED is required to advance."
+    return f"Decision is {decision.get('decision', '(unknown)')}; APPROVED is required to advance."
 
 
 def _next_action(state) -> str:
@@ -79,7 +80,7 @@ def _next_action(state) -> str:
     decision = state.decision
     if not decision:
         return 'Run `pp decision set <APPROVED|NEEDS_REWORK|REJECTED> --reason "..."`.'
-    if decision["decision"] == "APPROVED":
+    if decision.get("decision") == "APPROVED":
         return "Run `pp advance brief`."
     return "Return to validation/rework, then record a new manual decision."
 

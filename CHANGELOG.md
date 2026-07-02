@@ -27,6 +27,21 @@ tagged only after RC validation passes.
   state shapes are unchanged (the `advise-setup` advice strings recorded in new state files are
   reworded; previously recorded state is unaffected).
 
+### Fixed
+- **Friendly corrupted-state handling (PP-AUDIT-001)** — a corrupted or hand-edited
+  `status.json` / `artifacts.json` no longer crashes commands with a raw Python traceback. A new
+  `StateCorruptedError` (path + reason + recovery hint) is raised by `load_state` /
+  `load_inventory` for malformed JSON, missing required fields, an unknown `current_phase`,
+  wrong-typed recorded sections, and artifact records missing required fields; a central CLI
+  boundary converts it into a clear message and exit code 1. Optional recorded sub-dicts missing
+  expected keys (e.g. a hand-edited `decision` without its verdict) now degrade gracefully in
+  `pp status` instead of raising `KeyError`. Unexpected internal errors still surface as
+  tracebacks — only expected user-facing state/config errors are converted.
+- **Atomic state writes (PP-AUDIT-004)** — `status.json` and `artifacts.json` are now written via
+  a same-directory temporary file and `os.replace`, so an interruption mid-write can no longer
+  leave a half-written file behind. On failure the temporary file is removed and the original is
+  left untouched. New public helper: `state.atomic_write_text`.
+
 ## [1.0.0] - unreleased
 
 _Prepared for the first stable release, **not yet tagged.** It is being validated through

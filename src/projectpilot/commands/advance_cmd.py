@@ -30,10 +30,9 @@ def run_advance(args, *, clock: Clock) -> int:
     if not decision:
         print('No recorded decision. Run `pp decision set APPROVED --reason "..."` first.')
         return 1
-    if decision["decision"] != "APPROVED":
-        print(
-            f"Decision is {decision['decision']}; APPROVED is required to advance to 'brief'."
-        )
+    verdict = decision.get("decision", "(unknown)")
+    if verdict != "APPROVED":
+        print(f"Decision is {verdict}; APPROVED is required to advance to 'brief'.")
         return 1
 
     now = clock()
