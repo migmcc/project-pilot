@@ -1,7 +1,8 @@
 """``pp brief import`` -- ingest an externally produced Project Brief.
 
-SkillLab owns brief content and quality. ProjectPilot only copies the supplied
-file into the project, records provenance metadata, and advances the lifecycle.
+The brief's content and quality are owned by whatever process produced it (for
+example SkillLab). ProjectPilot only copies the supplied file into the project,
+records provenance metadata, and advances the lifecycle.
 """
 from __future__ import annotations
 

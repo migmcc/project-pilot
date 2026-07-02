@@ -5,9 +5,10 @@ v0.1 command functions, stopping at the first human gate. Writes local
 coordination files (``NEXT_ACTION.md``, ``ACTION_REQUIRED.md``).
 
 It spawns no processes and performs no network, GitHub, or LLM calls, and never
-executes the project, SkillLab, the A-team, or AgentDesk. Instructions written to
-the coordination files only ever name safe ``pp`` commands or human SkillLab/A-team
-steps -- never push, tag, release, or install.
+executes the project or any external tool (SkillLab, the A-team, AgentDesk, or
+anything else). Instructions written to the coordination files only ever name
+safe ``pp`` commands or human validation/execution steps -- never push, tag,
+release, or install.
 """
 from __future__ import annotations
 
@@ -67,31 +68,33 @@ def _gate_for(phase: Phase, state: ProjectState) -> tuple[str, str]:
             value = decision["decision"]
             return (
                 f"Decision is {value}; APPROVED required",
-                f"The recorded decision is {value}. Return to SkillLab validation/rework, "
+                f"The recorded decision is {value}. Return to validation/rework, "
                 "then record a new decision:\n"
                 '  pp approve decision <APPROVED|NEEDS_REWORK|REJECTED> --reason "..."',
             )
         return (
-            "SkillLab decision required",
-            "Run `/skilllab-start-project` with the idea, then record the decision:\n"
+            "Validation decision required",
+            "Validate the idea with your validation process (for example SkillLab's\n"
+            "`/skilllab-start-project`), then record the decision:\n"
             '  pp approve decision <APPROVED|NEEDS_REWORK|REJECTED> --reason "..."',
         )
     if phase is Phase.BRIEF:
         return (
-            "SkillLab brief import required",
-            "Provide the SkillLab PROJECT_BRIEF.md, then run:\n"
+            "Project brief import required",
+            "Provide the externally produced PROJECT_BRIEF.md (e.g. from SkillLab), then run:\n"
             "  pp brief import <path-to-PROJECT_BRIEF.md>",
         )
     if phase is Phase.PLANNING:
         return (
             "Execution approval required",
-            "Ensure the A-team is ready (or use --override), then run:\n"
+            "Run `pp check-ateam` to verify readiness (or use --override), then run:\n"
             '  pp approve execution --reason "..." [--override]',
         )
     if phase is Phase.EXECUTION:
         return (
-            "Technical execution by the A-team",
-            "Do the technical work with the A-team. When complete, run:\n"
+            "Technical execution (external)",
+            "Do the technical work with your execution toolkit (e.g. the A-team).\n"
+            "When complete, run:\n"
             "  pp final-validation prepare",
         )
     if phase is Phase.FINAL_VALIDATION:
@@ -197,7 +200,8 @@ def write_or_clear_action_required(
         "",
         "## Boundary reminder",
         "ProjectPilot does not validate the idea, execute the project, or install/run external tools.",
-        "SkillLab owns validation; the A-team is the execution engine; AgentDesk is optional.",
+        "Validation, execution, and helper tools are yours to choose (e.g. SkillLab,",
+        "the A-team, and AgentDesk in the author's workflow).",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return path

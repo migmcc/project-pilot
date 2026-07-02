@@ -66,7 +66,7 @@ def _active_gate(state) -> str:
 
     decision = state.decision
     if not decision:
-        return "Waiting for a manual SkillLab decision."
+        return "Waiting for a recorded validation decision."
     if decision["decision"] == "APPROVED":
         return "APPROVED decision recorded; `pp advance brief` is available."
     return f"Decision is {decision['decision']}; APPROVED is required to advance."
@@ -81,7 +81,7 @@ def _next_action(state) -> str:
         return 'Run `pp decision set <APPROVED|NEEDS_REWORK|REJECTED> --reason "..."`.'
     if decision["decision"] == "APPROVED":
         return "Run `pp advance brief`."
-    return "Return to SkillLab validation/rework, then record a new manual decision."
+    return "Return to validation/rework, then record a new manual decision."
 
 
 def run_status(args) -> int:

@@ -69,7 +69,7 @@ class SetupAdviceTests(unittest.TestCase):
                 rc = main(["advise-setup", "--dir", d], clock=clock)
             text = out.getvalue()
             self.assertEqual(rc, 0)
-            self.assertIn("Install A-team in the project repo", text)
+            self.assertIn("Install your execution toolkit (e.g. the A-team) in the project repo", text)
             self.assertIn("Install only minimal builders", text)
             self.assertIn("Fill INIT.md", text)
             self.assertIn("Run /orchestrate init", text)

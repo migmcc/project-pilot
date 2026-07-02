@@ -1,8 +1,8 @@
 """``pp decision set`` — record a manual decision (does NOT advance the phase).
 
-The decision value itself is owned by SkillLab; this command only persists what
-the human reports back. Advancing to the next phase is a separate, explicit step
-(``pp advance brief``).
+The decision value itself is owned by your validation process (for example
+SkillLab); this command only persists what the human reports back. Advancing to
+the next phase is a separate, explicit step (``pp advance brief``).
 """
 from __future__ import annotations
 

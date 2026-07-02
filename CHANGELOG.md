@@ -8,6 +8,25 @@ tagged only after RC validation passes.
 
 ## [Unreleased]
 
+### Added
+- **Configurable A-team integration points (PP-AUDIT-003)** — two new optional keys in
+  `.project-pilot/config.yaml`: `ateam_source_paths` (where `pp doctor` and `pp setup ateam` look
+  for a copyable toolkit source; entries are home-relative unless absolute) and
+  `ateam_readiness_paths` (what `pp check-ateam` requires before execution approval; entries ending
+  in `/` must be directories, all others files). Defaults are unchanged, so existing projects
+  behave identically.
+- `pp setup ateam` accepts `--dir <project>` to choose which project's configuration to read
+  (default: current directory).
+
+### Changed
+- **Portability wording (PP-AUDIT-003)** — user-facing prompts, advice, help text, and docs now
+  present SkillLab, the A-team, and AgentDesk as optional example integrations from one local
+  workflow rather than assumed tools; the validation prompt is generic with the SkillLab slash
+  command kept as a worked example, and a new README "Ecosystem assumptions" section documents the
+  conventions and the config overrides. Gate semantics, command names, exit codes, and recorded
+  state shapes are unchanged (the `advise-setup` advice strings recorded in new state files are
+  reworded; previously recorded state is unaffected).
+
 ## [1.0.0] - unreleased
 
 _Prepared for the first stable release, **not yet tagged.** It is being validated through

@@ -8,12 +8,12 @@ from ..phases import Phase
 from ..state import Clock, load_state, save_state
 
 RECOMMENDED_BUILDERS = [
-    "A-team for serious or active project work",
+    "A-team (example execution toolkit) for serious or active project work",
     "minimal builders only",
 ]
 
 READINESS_CHECKS = [
-    "Install A-team in the project repo if this is a serious or active project",
+    "Install your execution toolkit (e.g. the A-team) in the project repo if this is a serious or active project",
     "Install only minimal builders",
     "Fill INIT.md",
     "Run /orchestrate init",
@@ -33,6 +33,9 @@ def _render_advice() -> str:
         "",
         "Manual readiness checks:",
         *[f"- {item}" for item in READINESS_CHECKS],
+        "",
+        "These checks reflect one example workflow (the A-team convention);",
+        "adapt them to your own toolkit.",
         "",
         "No tools were installed or executed by ProjectPilot.",
     ]

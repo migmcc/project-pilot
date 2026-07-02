@@ -53,9 +53,43 @@ control of the project.**
 ## Charter
 
 ProjectPilot orchestrates and enforces the lifecycle; it never executes technically. It does **not
-replace** SkillLab (which owns idea validation), the A-Team (the primary execution engine), or
-AgentDesk (optional/complementary), and it never reimplements them. No automation of commits, push,
-release, or tool installation; no GitHub API.
+replace** the validation, execution, or scaffolding tools you already use — in the author's
+workflow those are SkillLab (idea validation), the A-Team (the primary execution engine), and
+AgentDesk (optional/complementary) — and it never reimplements them. No automation of commits,
+push, release, or tool installation; no GitHub API.
+
+## Ecosystem assumptions
+
+ProjectPilot is **generic and local-first**: nothing in the lifecycle requires a specific tool.
+Three names recur in prompts, advice, and docs — they are **optional conventions from one local
+workflow** (the author's), shown as worked examples:
+
+- **SkillLab** — a skill library that validates ideas and produces a decision plus a
+  `PROJECT_BRIEF.md`. Any equivalent works: `pp decision set` records a decision from *any*
+  validation process (a team review, your own judgement), and `pp brief import` accepts *any*
+  brief file.
+- **A-Team** — a toolkit of agents/skills installed under `~/.claude`, used as the execution
+  engine. `pp check-ateam` checks its file convention by default, and `pp setup ateam` can copy it
+  into `~/.claude` — both are configurable (below) and entirely optional.
+- **AgentDesk** — an optional scaffolding helper mentioned in advice text. Never required.
+
+To point the A-team-flavoured commands at your own conventions, add either key to
+`.project-pilot/config.yaml`:
+
+```yaml
+# Where `pp doctor` / `pp setup ateam` look for a copyable toolkit source.
+# Entries are resolved against your home directory; absolute paths work too.
+ateam_source_paths:
+  - my-templates/.claude
+
+# What `pp check-ateam` requires before execution approval.
+# A trailing slash means the entry must be a directory; otherwise a file.
+ateam_readiness_paths:
+  - docs/TEAM_SETUP.md
+  - .toolkit/
+```
+
+Defaults are unchanged when the keys are absent, so existing projects behave identically.
 
 ## Canonical lifecycle phases (D5)
 
@@ -190,8 +224,8 @@ python -m projectpilot analyze path/to/project       # positional path (alias fo
 python -m projectpilot setup ateam                   # dry-run plan for installing the A-team
 python -m projectpilot setup ateam --apply           # install into ~/.claude (backs up first)
 
-# Validation gate (SkillLab owns the decision)
-python -m projectpilot validate                     # emits the /skilllab-start-project prompt
+# Validation gate (the decision is recorded, never made, by ProjectPilot)
+python -m projectpilot validate                     # emits the validation prompt (SkillLab shown as example)
 python -m projectpilot decision set APPROVED --reason "..."   # records only; does NOT advance
 python -m projectpilot advance brief                # explicit gated transition (requires APPROVED)
 
@@ -663,8 +697,10 @@ degrades to `#`/`-` automatically. Like the artifact tracker, the dashboard read
 `pp setup ateam` is the one command that can write *outside* the project, into the global
 `~/.claude`. It is safe by default and only writes when you ask:
 
-- **`pp setup ateam`** (no flag) — **diagnostic only**. Inspects `~/.claude` and any common A-team
-  source, reports what an install would copy and where it would conflict, and writes nothing.
+- **`pp setup ateam`** (no flag) — **diagnostic only**. Inspects `~/.claude` and the configured
+  source locations (the `ateam_source_paths` config key, or built-in defaults — see
+  [Ecosystem assumptions](#ecosystem-assumptions)), reports what an install would copy and where it
+  would conflict, and writes nothing. Use `--dir <project>` to read another project's configuration.
 - **`pp setup ateam --apply`** — **installs into `~/.claude`**, additively and non-destructively:
   - a **timestamped backup is mandatory** and is taken first, at
     `~/.claude/backups/projectpilot-ateam-YYYYMMDD-HHMMSS/` (covering existing `skills`, `agents`,
@@ -676,7 +712,7 @@ degrades to `#`/`-` automatically. Like the artifact tracker, the dashboard read
     to reconcile;
   - an existing `settings.json` is **never modified** (reported as `preserved`); merging
     hooks/settings is deferred to a future run;
-  - the **source is never modified** and **`00_Base` is never deleted**.
+  - the **source is never modified** and **never deleted**.
 
 The real A-team install therefore stays under your explicit control: nothing reaches `~/.claude`
 without `--apply`, and nothing is ever deleted or overwritten.

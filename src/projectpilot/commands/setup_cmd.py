@@ -21,12 +21,14 @@ from ..state import Clock
 
 def run_setup_ateam(args, *, clock: Clock) -> int:
     home = Path(args.home) if getattr(args, "home", None) else Path.home()
+    base = Path(getattr(args, "dir", ".") or ".")
+    candidates = ateam.source_candidates(base)
     if getattr(args, "apply", False):
-        return _run_apply(home, clock)
-    return _run_dry_run(home)
+        return _run_apply(home, clock, candidates)
+    return _run_dry_run(home, candidates)
 
 
-def _run_dry_run(home: Path) -> int:
+def _run_dry_run(home: Path, candidates) -> int:
     env = ateam.inspect_env(home)
 
     lines = ["pp setup ateam (dry-run -- nothing will be installed or changed)", ""]
@@ -45,11 +47,11 @@ def _run_dry_run(home: Path) -> int:
     lines.append(f"- Missing categories: {missing}")
     lines.append("")
 
-    sources = ateam.discover_sources(home)
+    sources = ateam.discover_sources(home, candidates)
     if not sources:
-        lines.append("No A-team source found in common locations. Nothing to plan.")
-        lines.append("Common locations checked (relative to home):")
-        lines.extend(f"- {rel}" for rel in ateam.DEFAULT_SOURCE_CANDIDATES)
+        lines.append("No A-team source found in the configured locations. Nothing to plan.")
+        lines.append("Locations checked (relative to home unless absolute):")
+        lines.extend(f"- {rel}" for rel in candidates)
         lines.append("")
         lines.append("setup ateam changed nothing.")
         print("\n".join(lines))
@@ -94,15 +96,15 @@ def _run_dry_run(home: Path) -> int:
     return 0
 
 
-def _run_apply(home: Path, clock: Clock) -> int:
-    sources = ateam.discover_sources(home)
+def _run_apply(home: Path, clock: Clock, candidates) -> int:
+    sources = ateam.discover_sources(home, candidates)
     if not sources:
         lines = [
             "pp setup ateam --apply",
             "",
-            "No valid A-team source found in common locations. Nothing was written.",
-            "Common locations checked (relative to home):",
-            *[f"- {rel}" for rel in ateam.DEFAULT_SOURCE_CANDIDATES],
+            "No valid A-team source found in the configured locations. Nothing was written.",
+            "Locations checked (relative to home unless absolute):",
+            *[f"- {rel}" for rel in candidates],
         ]
         print("\n".join(lines))
         return 1

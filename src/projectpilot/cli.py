@@ -185,15 +185,20 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Install into ~/.claude (additive; backs up first; never overwrites).",
     )
+    p_setup_ateam.add_argument(
+        "--dir",
+        default=".",
+        help="Project directory whose configuration to read (default: current).",
+    )
     p_setup_ateam.add_argument("--home", default=None, help=argparse.SUPPRESS)
 
     p_validate = subparsers.add_parser(
-        "validate", help="Run internal pre-checks and emit the SkillLab prompt."
+        "validate", help="Run internal pre-checks and emit the validation prompt."
     )
     p_validate.add_argument("--dir", default=".", help="Project directory (default: current).")
 
     p_decision = subparsers.add_parser(
-        "decision", help="Record a manual SkillLab decision."
+        "decision", help="Record a manual validation decision."
     )
     decision_subparsers = p_decision.add_subparsers(dest="decision_command", required=True)
     p_decision_set = decision_subparsers.add_parser(
@@ -236,7 +241,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     p_check_ateam = subparsers.add_parser(
-        "check-ateam", help="Check expected A-team files without changing them."
+        "check-ateam",
+        help="Check readiness files (A-team convention by default) without changing them.",
     )
     p_check_ateam.add_argument(
         "--dir", default=".", help="Project directory (default: current)."

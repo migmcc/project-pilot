@@ -21,6 +21,8 @@ import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .config import load_mapping
+
 #: Sub-directories an A-team install populates under ``~/.claude``.
 ATEAM_CATEGORIES = ("skills", "agents", "commands")
 
@@ -31,14 +33,38 @@ ATEAM_SIGNAL_SKILL = "using-a-team"
 #: complete A-team install.
 SUPERPOWERS_SIGNAL_SKILL = "using-superpowers"
 
+#: Config key (in ``.project-pilot/config.yaml``): a list of source locations
+#: that replaces :data:`DEFAULT_SOURCE_CANDIDATES`. Entries are resolved
+#: against ``home`` unless absolute.
+SOURCE_PATHS_KEY = "ateam_source_paths"
+
 #: Where a copyable A-team source might live, expressed relative to ``$HOME``.
-#: ``00_Base`` is the user's known base template. The ``.claude`` directly under
-#: home is the *target*, not a source, and is handled separately by inspect_env.
+#: These defaults reflect one example layout (a ``00_Base`` template folder);
+#: point :data:`SOURCE_PATHS_KEY` at your own locations to override them. The
+#: ``.claude`` directly under home is the *target*, not a source, and is
+#: handled separately by inspect_env.
 DEFAULT_SOURCE_CANDIDATES = (
     Path("00_Base") / ".claude",
     Path("Desktop") / "Projetos" / "00_Base" / ".claude",
     Path("Projetos") / "00_Base" / ".claude",
 )
+
+
+def source_candidates(base: Path) -> tuple[Path, ...]:
+    """Return the source search locations configured for the project at ``base``.
+
+    Reads the :data:`SOURCE_PATHS_KEY` list from ``.project-pilot/config.yaml``;
+    when the key is absent or empty, :data:`DEFAULT_SOURCE_CANDIDATES` applies.
+    Entries may be absolute or ``home``-relative (resolution against home
+    happens in :func:`discover_sources`). Read-only.
+    """
+    raw = load_mapping(Path(base)).get(SOURCE_PATHS_KEY)
+    if isinstance(raw, str):
+        raw = [raw]
+    if not isinstance(raw, list):
+        return DEFAULT_SOURCE_CANDIDATES
+    configured = tuple(Path(item) for item in raw if str(item).strip())
+    return configured or DEFAULT_SOURCE_CANDIDATES
 
 
 def claude_home(home: Path) -> Path:

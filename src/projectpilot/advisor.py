@@ -153,18 +153,18 @@ def _phase_gate(ctx: AdvisorContext) -> tuple[str, str, str | None] | None:
         if verdict == "APPROVED":
             return (
                 "Advance to the brief phase",
-                "The SkillLab decision is APPROVED; the project can move on.",
+                "The validation decision is APPROVED; the project can move on.",
                 "pp advance brief",
             )
         if verdict:
             return (
-                "Record a new SkillLab decision",
+                "Record a new validation decision",
                 f"The recorded decision is {verdict}; an APPROVED decision is required to advance.",
                 'pp approve decision APPROVED --reason "..."',
             )
         return (
-            "Record the SkillLab decision",
-            "Validation is pending a SkillLab decision.",
+            "Record the validation decision",
+            "Validation is pending a recorded decision.",
             'pp approve decision APPROVED --reason "..."',
         )
     if phase is Phase.BRIEF:

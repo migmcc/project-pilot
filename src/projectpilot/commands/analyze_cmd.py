@@ -69,13 +69,13 @@ def run_analyze(args) -> int:
         lines.append("- Run `pp status` to see the current phase and gate.")
     if report.looks_new:
         lines.append(
-            "- AgentDesk could help scaffold a brand-new project later "
-            "(optional support, not required)."
+            "- Optional scaffolding tools (e.g. AgentDesk) could help bootstrap "
+            "a brand-new project (not required)."
         )
     else:
         lines.append(
-            "- AgentDesk is optional here; the A-team remains the primary "
-            "execution engine."
+            "- Your existing execution toolkit applies here; optional helpers "
+            "(e.g. AgentDesk) are not required."
         )
 
     print("\n".join(lines))

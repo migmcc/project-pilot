@@ -54,7 +54,7 @@ def run_doctor(args) -> int:
     lines.append(f"- Missing categories: {missing}")
 
     # Ambiguity signals
-    sources = ateam.discover_sources(home)
+    sources = ateam.discover_sources(home, ateam.source_candidates(base))
     local_claude = (base / ".claude").is_dir()
     lines.append("")
     lines.append("Ambiguity signals:")
@@ -64,11 +64,11 @@ def run_doctor(args) -> int:
             lines.append(f"  - {src}")
         if env.root_exists:
             lines.append(
-                "  (both a global ~/.claude and a 00_Base-style source exist -- "
+                "  (both a global ~/.claude and an alternate source exist -- "
                 "future installs could disagree about the source of truth)"
             )
     else:
-        lines.append("- No alternate 00_Base-style A-team source found.")
+        lines.append("- No alternate A-team source found in the configured locations.")
     if local_claude:
         lines.append(
             f"- A project-local .claude exists at {base / '.claude'} "

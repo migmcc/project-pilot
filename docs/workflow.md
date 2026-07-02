@@ -20,12 +20,12 @@ Transitions follow a strict policy:
 
 | Phase | Typical command(s) | Gate to advance |
 | --- | --- | --- |
-| `idea` | `pp validate` | emits the SkillLab prompt; enters `validation` |
+| `idea` | `pp validate` | emits the validation prompt; enters `validation` |
 | `validation` | `pp decision set APPROVED --reason "…"`, then `pp advance brief` | an `APPROVED` decision |
 | `brief` | `pp brief import <PROJECT_BRIEF.md>` | an imported brief |
 | `setup-advice` | `pp advise-setup` | setup advice prepared |
-| `planning` | `pp execution approve --reason "…" [--override]` | A-team readiness or explicit override |
-| `execution` | do the work with the A-team, then `pp final-validation prepare` | execution complete + reviewed |
+| `planning` | `pp execution approve --reason "…" [--override]` | readiness check (`pp check-ateam`) or explicit override |
+| `execution` | do the work with your execution toolkit, then `pp final-validation prepare` | execution complete + reviewed |
 | `final-validation` | complete the checklist, then `pp done approve --reason "…"` | final validation signed off |
 | `done` | — | lifecycle complete |
 

@@ -1,12 +1,23 @@
-"""``pp check-ateam`` -- read-only A-team readiness check."""
+"""``pp check-ateam`` -- read-only execution-readiness check.
+
+By default it checks the author's A-team convention (the paths below). Override
+the convention per project with the ``ateam_readiness_paths`` list in
+``.project-pilot/config.yaml``: entries ending in ``/`` must be directories,
+all others must be files.
+"""
 from __future__ import annotations
 
 from pathlib import Path
 
+from ..config import load_mapping
 from ..errors import StateNotFoundError
 from ..phases import Phase
 from ..state import Clock, load_state, save_state
 
+#: Config key: replaces :data:`REQUIRED_PATHS` for the project.
+READINESS_PATHS_KEY = "ateam_readiness_paths"
+
+#: Default readiness convention (the A-team layout).
 REQUIRED_PATHS = [
     "INIT.md",
     ".agent-sync",
@@ -15,11 +26,23 @@ REQUIRED_PATHS = [
 ]
 
 
+def readiness_paths(base: Path) -> list[str]:
+    """Return the readiness paths configured for ``base``, or the defaults."""
+    raw = load_mapping(Path(base)).get(READINESS_PATHS_KEY)
+    if isinstance(raw, str):
+        raw = [raw]
+    if not isinstance(raw, list):
+        return list(REQUIRED_PATHS)
+    configured = [str(item).strip() for item in raw if str(item).strip()]
+    return configured or list(REQUIRED_PATHS)
+
+
 def _path_exists(base: Path, rel_path: str) -> bool:
-    path = base / rel_path
-    if rel_path == ".agent-sync":
-        return path.is_dir()
-    return path.is_file()
+    # A trailing slash marks a directory requirement; ``.agent-sync`` keeps its
+    # historical directory semantics so existing recorded state stays identical.
+    wants_dir = rel_path.endswith("/") or rel_path == ".agent-sync"
+    path = base / rel_path.rstrip("/")
+    return path.is_dir() if wants_dir else path.is_file()
 
 
 def _render_paths(label: str, paths: list[str]) -> list[str]:
@@ -43,14 +66,15 @@ def run_check_ateam(args, *, clock: Clock) -> int:
         )
         return 1
 
-    present = [path for path in REQUIRED_PATHS if _path_exists(base, path)]
-    missing = [path for path in REQUIRED_PATHS if path not in present]
+    required = readiness_paths(base)
+    present = [path for path in required if _path_exists(base, path)]
+    missing = [path for path in required if path not in present]
     ready = not missing
     now = clock()
 
     state.ateam_check = {
         "checked_at": now,
-        "required_paths": list(REQUIRED_PATHS),
+        "required_paths": list(required),
         "present_paths": present,
         "missing_paths": missing,
         "ready": ready,

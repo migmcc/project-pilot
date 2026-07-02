@@ -50,12 +50,12 @@ PHASE_ORDER: list[Phase] = [
 #: Human hint for what to do at each phase. Each hint names a command that
 #: already exists, except where the lifecycle has no further command yet.
 NEXT_ACTION: dict[Phase, str] = {
-    Phase.IDEA: "Run `pp validate` to enter validation and generate the SkillLab prompt.",
-    Phase.VALIDATION: "Record the SkillLab decision with `pp decision set`.",
-    Phase.BRIEF: "Import the SkillLab-approved brief with `pp brief import <path>`.",
+    Phase.IDEA: "Run `pp validate` to enter validation and generate the validation prompt.",
+    Phase.VALIDATION: "Record the validation decision with `pp decision set`.",
+    Phase.BRIEF: "Import the approved Project Brief with `pp brief import <path>`.",
     Phase.SETUP_ADVICE: "Prepare setup advice with `pp advise-setup`.",
     Phase.PLANNING: "Check readiness with `pp check-ateam`, then `pp execution approve`.",
-    Phase.EXECUTION: "Drive execution with the A-team, then `pp final-validation prepare`.",
+    Phase.EXECUTION: "Drive execution with your toolkit (e.g. the A-team), then `pp final-validation prepare`.",
     Phase.FINAL_VALIDATION: "Complete the checklist, then `pp done approve --reason \"...\"`.",
     Phase.DONE: "Project complete.",
 }
@@ -66,7 +66,7 @@ GATE_FOR_NEXT: dict[Phase, str] = {
     Phase.VALIDATION: "An APPROVED decision is required to advance.",
     Phase.BRIEF: "An imported brief is required to advance.",
     Phase.SETUP_ADVICE: "Setup advice must be prepared to advance.",
-    Phase.PLANNING: "A-team readiness or an explicit override is required to advance.",
+    Phase.PLANNING: "A readiness check (`pp check-ateam`) or an explicit override is required to advance.",
     Phase.EXECUTION: "Execution must be complete and reviewed to advance.",
     Phase.FINAL_VALIDATION: "Final validation must be complete to advance.",
     Phase.DONE: "none",
