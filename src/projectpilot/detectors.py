@@ -18,12 +18,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-# The CI directory name is assembled from fragments on purpose: its literal
-# spelling is one of the tokens rejected by the no-automation guard
-# (tests/test_no_automation.py), which exists to forbid hosted-API automation.
-# Detecting a local workflows directory is read-only and legitimate, so we keep
-# the source free of the literal token rather than weakening the guard.
-CI_DIR_NAME = ".git" + "hub"
+CI_DIR_NAME = ".github"
 CI_WORKFLOWS_SUBPATH = Path(CI_DIR_NAME) / "workflows"
 
 
