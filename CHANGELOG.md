@@ -8,6 +8,9 @@ published to PyPI, and the `v1.0.0` tag is applied manually.
 
 ## [Unreleased]
 
+### Added
+- Added a version-consistency test covering `pyproject.toml` and `projectpilot.__version__`.
+
 ## [1.0.0] - 2026-07-03
 
 First stable release — **private/local**: the repository remains private, nothing is published to
