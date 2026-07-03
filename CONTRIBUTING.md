@@ -36,7 +36,7 @@ pip install -e .
 Tests use the standard library **`unittest`** only (no pytest, no plugins):
 
 ```bash
-python -m unittest
+python -m unittest discover -s tests -t .
 ```
 
 All tests must pass before a change is proposed. Please also run:

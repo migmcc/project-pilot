@@ -19,6 +19,10 @@ tagged only after RC validation passes.
   (default: current directory).
 
 ### Changed
+- **Packaging/docs/CI alignment (PP-AUDIT-006)** — while ProjectPilot remains at
+  `v1.0.0-rc.1`, packaging metadata now uses the Beta development classifier, contributing docs use
+  the same `unittest discover` command as README and CI, CI covers Python 3.12 and 3.13, and the RC1
+  changelog reference points to the tag rather than a GitHub Release URL.
 - **Portability wording (PP-AUDIT-003)** — user-facing prompts, advice, help text, and docs now
   present SkillLab, the A-team, and AgentDesk as optional example integrations from one local
   workflow rather than assumed tools; the validation prompt is generic with the SkillLab slash
@@ -273,6 +277,6 @@ project's lifecycle (`idea → done`). It never executes technically and does no
 - No commits/push/release/tag from the runtime; no GitHub API; no AgentDesk; no A-team installation.
 
 [1.0.0]: unreleased (pending RC validation)
-[1.0.0-rc.1]: https://github.com/migmcc/project-pilot/releases/tag/v1.0.0-rc.1
+[1.0.0-rc.1]: https://github.com/migmcc/project-pilot/tree/v1.0.0-rc.1
 [0.2.0]: local baseline (not published)
 [0.1.0]: local baseline (not published)

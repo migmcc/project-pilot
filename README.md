@@ -808,7 +808,7 @@ API, or VCS/release/install automation.
 ## Continuous integration
 
 A GitHub Actions workflow (`.github/workflows/ci.yml`) runs the unit tests and the no-automation
-guard on Python 3.12, with no external dependencies and no pytest.
+guard on Python 3.12 and 3.13, with no external dependencies and no pytest.
 
 ## Screenshots & GitHub presentation
 
