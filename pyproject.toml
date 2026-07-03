@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "projectpilot"
-version = "1.0.0-rc.1"
+version = "1.0.0"
 description = "Local, deterministic lifecycle orchestrator CLI — a process conductor with explicit approval gates."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -22,13 +22,14 @@ keywords = [
     "agents",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Build Tools",
     # Local/private-first project: never upload to a public package index.
     "Private :: Do Not Upload",

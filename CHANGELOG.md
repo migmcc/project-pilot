@@ -3,10 +3,18 @@
 All notable changes to ProjectPilot are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/). ProjectPilot is local-first and stdlib-only. The current
-release is **v1.0.0-rc.1**, a release candidate under final validation; the final **v1.0.0** will be
-tagged only after RC validation passes.
+release is **v1.0.0**, a **private/local** release: the repository stays private, nothing is
+published to PyPI, and the `v1.0.0` tag is applied manually.
 
 ## [Unreleased]
+
+## [1.0.0] - 2026-07-03
+
+First stable release — **private/local**: the repository remains private, nothing is published to
+PyPI (the `Private :: Do Not Upload` classifier stays), and no GitHub Release is created; the
+`v1.0.0` tag is applied manually. Packages the v1.0.0-rc.1 scope (below) plus the audit remediation
+validated during the RC (PP-AUDIT-001 through 004 and 006), and finalizes the release metadata
+(version `1.0.0`, `Development Status :: 5 - Production/Stable`).
 
 ### Added
 - **Configurable A-team integration points (PP-AUDIT-003)** — two new optional keys in
@@ -49,13 +57,6 @@ tagged only after RC validation passes.
   a same-directory temporary file and `os.replace`, so an interruption mid-write can no longer
   leave a half-written file behind. On failure the temporary file is removed and the original is
   left untouched. New public helper: `state.atomic_write_text`.
-
-## [1.0.0] - unreleased
-
-_Prepared for the first stable release, **not yet tagged.** It is being validated through
-**v1.0.0-rc.1** (below). The `v1.0.0` tag will be created only after RC validation passes; no changes
-are planned between RC1 and 1.0.0 beyond fixes surfaced during validation. The full change list for
-1.0.0 is documented under the RC1 entry._
 
 ## [1.0.0-rc.1] - 2026-07-01
 
@@ -280,7 +281,7 @@ project's lifecycle (`idea → done`). It never executes technically and does no
 - Tests use the standard library **`unittest`** only (no pytest).
 - No commits/push/release/tag from the runtime; no GitHub API; no AgentDesk; no A-team installation.
 
-[1.0.0]: unreleased (pending RC validation)
+[1.0.0]: https://github.com/migmcc/project-pilot/tree/v1.0.0
 [1.0.0-rc.1]: https://github.com/migmcc/project-pilot/tree/v1.0.0-rc.1
 [0.2.0]: local baseline (not published)
 [0.1.0]: local baseline (not published)

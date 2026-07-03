@@ -12,8 +12,8 @@ This substantially limits the runtime attack surface, but responsible disclosure
 
 | Version | Supported |
 | --- | --- |
-| `1.0.0-rc.x` | ✅ |
-| `< 1.0` | ❌ |
+| `1.0.x` | ✅ |
+| `< 1.0` (including `1.0.0-rc.x`) | ❌ |
 
 ## Reporting a vulnerability
 
