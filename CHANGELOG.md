@@ -32,6 +32,10 @@ tagged only after RC validation passes.
   reworded; previously recorded state is unaffected).
 
 ### Fixed
+- **Advisor recommendation ordering (PP-AUDIT-002)** — aligned with execution readiness before the
+  Planning → Execution approval: at Planning, `pp next` now recommends missing required evidence and
+  `pp check-ateam` ahead of `pp approve execution`, and `pp execution approve` prints a non-blocking
+  warning when planning requirements are incomplete. Gate and override semantics are unchanged.
 - **Friendly corrupted-state handling (PP-AUDIT-001)** — a corrupted or hand-edited
   `status.json` / `artifacts.json` no longer crashes commands with a raw Python traceback. A new
   `StateCorruptedError` (path + reason + recovery hint) is raised by `load_state` /
