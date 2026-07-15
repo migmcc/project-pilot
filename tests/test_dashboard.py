@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from projectpilot import artifact_store, dashboard
+from projectpilot import artifact_store, dashboard, graph_context
 from projectpilot.config import config_path
 from projectpilot.phases import Phase
 from projectpilot.state import ProjectState, save_state
@@ -39,6 +39,17 @@ def configure_lib(base: Path, d: Path):
     path = config_path(base)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("external_skill_paths:\n  - ../lib\n", encoding="utf-8")
+
+
+def configure_graphify(base: Path, *, ready: bool) -> None:
+    path = config_path(base)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("graphify_enabled: true\n", encoding="utf-8")
+    if ready:
+        out = base / "graphify-out"
+        out.mkdir()
+        (out / "graph.json").write_text("{}\n", encoding="utf-8")
+        (out / "GRAPH_REPORT.md").write_text("# Report\n", encoding="utf-8")
 
 
 class EmptyProjectTests(unittest.TestCase):
@@ -98,6 +109,42 @@ class InitializedProjectTests(unittest.TestCase):
 
 
 class JsonModeTests(unittest.TestCase):
+    def test_enabled_context_is_additive_and_stably_ordered(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            seed_state(base)
+            configure_graphify(base, ready=True)
+            payload = dashboard.collect(base).to_dict()
+            self.assertEqual(
+                list(payload.keys()),
+                ["project", "phase", "workflow", "artifacts", "skills", "context"],
+            )
+            self.assertEqual(
+                list(payload["context"].keys()),
+                ["provider", "status", "query_budget", "graph", "report"],
+            )
+            self.assertEqual(
+                payload["context"],
+                {
+                    "provider": "graphify",
+                    "status": graph_context.STATE_READY,
+                    "query_budget": 1200,
+                    "graph": "graphify-out/graph.json",
+                    "report": "graphify-out/GRAPH_REPORT.md",
+                },
+            )
+
+    def test_disabled_context_keeps_original_top_level_shape(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            seed_state(base)
+            payload = dashboard.collect(base).to_dict()
+            self.assertEqual(
+                list(payload.keys()),
+                ["project", "phase", "workflow", "artifacts", "skills"],
+            )
+            self.assertNotIn("context", payload)
+
     def test_key_ordering_is_stable(self):
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)

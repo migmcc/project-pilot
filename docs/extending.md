@@ -79,6 +79,16 @@ RULES = [..., rule_example]
 Recommendations are sorted by priority with a stable sort, so a new rule slots into the existing order
 without disturbing the others. Rules must consume only public interfaces and must invent nothing.
 
+## 5. Add an external context integration
+
+Graphify is the worked example for context providers. Its adapter is deliberately
+limited to safe configuration, safe path containment, local output presence and
+metadata, and deterministic prompt text. ProjectPilot never reads or parses the
+contents of `graph.json` or `GRAPH_REPORT.md`. A future provider must preserve the
+same boundary: no dependency, process, network, credential access, content or
+graph parsing, gate blocking, or automatic artifact registration. Do not
+generalize to a provider framework until a second measured provider requires it.
+
 ## What not to add
 
 To preserve the project's guarantees, extensions must not introduce runtime dependencies, LLM calls,

@@ -20,7 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import advisor, artifact_store, phase_requirements, recommend, skills
+from . import advisor, artifact_store, graph_context, phase_requirements, recommend, skills
 from .errors import StateNotFoundError
 from .phases import Phase
 from .state import load_state
@@ -51,6 +51,7 @@ class Dashboard:
     top_recommendation: advisor.Recommendation | None = None
     artifacts: list[dict] = field(default_factory=list)
     recommended_skills: list[str] = field(default_factory=list)
+    graph_context_status: graph_context.GraphContextStatus | None = None
 
     def to_dict(self, *, verbose: bool = False) -> dict:
         """Assemble the deterministic JSON payload with stable key ordering."""
@@ -81,7 +82,7 @@ class Dashboard:
                 {key: record[key] for key in _ARTIFACT_META_KEYS} for record in self.artifacts
             ]
 
-        return {
+        payload = {
             "project": {
                 "name": self.project_name,
                 "phase": self.phase.value if self.phase else None,
@@ -91,6 +92,16 @@ class Dashboard:
             "artifacts": artifacts_block,
             "skills": {"recommended": list(self.recommended_skills)},
         }
+        status = self.graph_context_status
+        if status is not None and status.enabled:
+            payload["context"] = {
+                "provider": "graphify",
+                "status": status.state,
+                "query_budget": status.query_budget,
+                "graph": status.graph_path,
+                "report": status.report_path,
+            }
+        return payload
 
 
 def _recommended_skills(base: Path, phase: Phase) -> list[str]:
@@ -105,9 +116,10 @@ def collect(base: Path) -> Dashboard:
     """Gather a :class:`Dashboard` for the project at ``base`` (read-only).
 
     Works whether or not the project is initialized: an uninitialized directory
-    yields a dashboard whose only content is the advisor's "initialize" nudge.
+    yields the advisor's "initialize" nudge and optional Graphify context status.
     """
     base = Path(base)
+    context_status = graph_context.inspect_graph_context(base)
     advice = advisor.advise(base)
     records = artifact_store.list_artifacts(base)
     top = advice.recommendations[0] if advice.recommendations else None
@@ -119,6 +131,7 @@ def collect(base: Path) -> Dashboard:
             initialized=False,
             top_recommendation=top,
             artifacts=records,
+            graph_context_status=context_status,
         )
 
     phase = state.current_phase
@@ -134,4 +147,5 @@ def collect(base: Path) -> Dashboard:
         top_recommendation=top,
         artifacts=records,
         recommended_skills=_recommended_skills(base, phase),
+        graph_context_status=context_status,
     )

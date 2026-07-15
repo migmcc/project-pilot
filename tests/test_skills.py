@@ -7,6 +7,7 @@ from projectpilot.config import (
     EXTERNAL_SKILL_PATHS_KEY,
     config_path,
     load_config,
+    load_mapping,
     parse_config,
 )
 
@@ -56,6 +57,24 @@ class ConfigParseTests(unittest.TestCase):
             base = Path(d)
             write_config(base, "external_skill_paths:\n  - ../pm-skills\n")
             self.assertEqual(load_config(base).external_skill_paths, ["../pm-skills"])
+
+    def test_load_config_invalid_utf8_returns_empty_config(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            path = config_path(base)
+            path.parent.mkdir(parents=True)
+            path.write_bytes(b"external_skill_paths: \xff\n")
+
+            self.assertEqual(load_config(base).external_skill_paths, [])
+
+    def test_load_mapping_invalid_utf8_returns_empty_mapping(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            path = config_path(base)
+            path.parent.mkdir(parents=True)
+            path.write_bytes(b"graphify_enabled: \xff\n")
+
+            self.assertEqual(load_mapping(base), {})
 
 
 class ResolveSourcesTests(unittest.TestCase):

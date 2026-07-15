@@ -4,6 +4,7 @@ from pathlib import Path
 
 from projectpilot import prompt_builder
 from projectpilot import artifact_store
+from projectpilot import graph_context
 from projectpilot.phases import Phase
 from projectpilot.state import ProjectState, save_state
 
@@ -93,6 +94,65 @@ class BuildPromptTests(unittest.TestCase):
         doc = build(ctx, skill_body="")
         self.assertIn("(skill body unavailable)", doc)
 
+    def test_ready_graphify_context_renders_in_planning(self):
+        status = graph_context.GraphContextStatus(
+            enabled=True,
+            state=graph_context.STATE_READY,
+            graph_path="graphify-out/graph.json",
+            report_path="graphify-out/GRAPH_REPORT.md",
+            query_budget=1200,
+        )
+        ctx = prompt_builder.PromptContext(
+            phase_value="planning",
+            phase_label="Planning",
+            graph_context_status=status,
+        )
+        doc = build(ctx, skill_name="Create PRD")
+        self.assertIn("Context retrieval", doc)
+        self.assertIn(
+            'graphify query "What project context is relevant to Create PRD?" --budget 1200',
+            doc,
+        )
+
+    def test_graphify_context_is_omitted_when_not_ready_or_outside_active_phase(self):
+        partial = graph_context.GraphContextStatus(
+            enabled=True,
+            state=graph_context.STATE_PARTIAL,
+            graph_path="graphify-out/graph.json",
+            report_path="graphify-out/GRAPH_REPORT.md",
+            query_budget=1200,
+        )
+        ready = graph_context.GraphContextStatus(
+            enabled=True,
+            state=graph_context.STATE_READY,
+            graph_path="graphify-out/graph.json",
+            report_path="graphify-out/GRAPH_REPORT.md",
+            query_budget=1200,
+        )
+        partial_doc = build(
+            prompt_builder.PromptContext(
+                phase_value="planning",
+                phase_label="Planning",
+                graph_context_status=partial,
+            )
+        )
+        idea_doc = build(
+            prompt_builder.PromptContext(
+                phase_value="idea",
+                phase_label="Idea",
+                graph_context_status=ready,
+            )
+        )
+        self.assertNotIn("Context retrieval", partial_doc)
+        self.assertNotIn("Context retrieval", idea_doc)
+
+    def test_unconfigured_context_keeps_prompt_without_graphify_section(self):
+        ctx = prompt_builder.PromptContext(
+            phase_value="planning",
+            phase_label="Planning",
+        )
+        self.assertNotIn("Context retrieval", build(ctx))
+
 
 class CollectContextTests(unittest.TestCase):
     def test_collects_grounded_fields(self):
@@ -162,6 +222,25 @@ class CollectContextTests(unittest.TestCase):
             self.assertIn("Registered artifacts:", doc)
             self.assertIn("- docs-prd-md | docs/PRD.md | md | planning | registered", doc)
             self.assertNotIn("SECRET CONTENT", doc)
+
+    def test_collects_ready_graphify_status_without_reading_graph_contents(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            config_dir = base / ".project-pilot"
+            config_dir.mkdir()
+            (config_dir / "config.yaml").write_text(
+                "graphify_enabled: true\n",
+                encoding="utf-8",
+            )
+            out = base / "graphify-out"
+            out.mkdir()
+            (out / "graph.json").write_text("SECRET GRAPH\n", encoding="utf-8")
+            (out / "GRAPH_REPORT.md").write_text("SECRET REPORT\n", encoding="utf-8")
+            ctx = prompt_builder.collect_context(make_state(), base)
+            self.assertEqual(ctx.graph_context_status.state, graph_context.STATE_READY)
+            doc = build(ctx)
+            self.assertNotIn("SECRET GRAPH", doc)
+            self.assertNotIn("SECRET REPORT", doc)
 
 
 if __name__ == "__main__":

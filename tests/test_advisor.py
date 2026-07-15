@@ -1,10 +1,12 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from projectpilot import advisor
 from projectpilot import artifact_store
 from projectpilot.config import config_path
+from projectpilot.phase_requirements import PhaseEvaluation
 from projectpilot.phases import Phase
 from projectpilot.state import ProjectState, save_state
 
@@ -63,6 +65,12 @@ def register(base: Path, rel: str):
 def complete_planning_evidence(base: Path):
     register(base, "docs/PRD.md")
     register(base, "docs/roadmap.md")
+
+
+def enable_graphify(base: Path) -> None:
+    path = config_path(base)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("graphify_enabled: true\n", encoding="utf-8")
 
 
 class EmptyProjectTests(unittest.TestCase):
@@ -299,6 +307,172 @@ class PlanningOrderTests(unittest.TestCase):
                 advice.recommendations[0].action, "Re-run the execution readiness check"
             )
             self.assertEqual(self._gate(advice).priority, advisor.PRIORITY_MEDIUM)
+
+
+class GraphifyContextRuleTests(unittest.TestCase):
+    def test_legacy_advisor_context_constructor_defaults_graphify_to_disabled(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            state = make_state(base, current_phase=Phase.PLANNING)
+
+            context = advisor.AdvisorContext(
+                base,
+                state,
+                Phase.PLANNING,
+                False,
+                False,
+                None,
+                False,
+                PhaseEvaluation(Phase.PLANNING),
+            )
+
+            self.assertFalse(context.graph_context_status.enabled)
+            self.assertEqual(
+                context.graph_context_status.state,
+                advisor.graph_context.STATE_DISABLED,
+            )
+            self.assertFalse(context.graph_context_status.output_path_usable)
+            self.assertEqual(advisor.rule_graphify_context(context), [])
+
+    def test_missing_graph_is_medium_and_non_blocking_in_active_phase(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            make_state(base, current_phase=Phase.PLANNING)
+            enable_graphify(base)
+            self.assertTrue(
+                advisor.graph_context.inspect_graph_context(base).output_path_usable
+            )
+            advice = advisor.advise(base)
+            rec = next(r for r in advice.recommendations if "Graphify" in r.action)
+            self.assertEqual(rec.priority, advisor.PRIORITY_MEDIUM)
+            self.assertEqual(rec.action, "Prepare the external Graphify knowledge graph")
+            self.assertEqual(rec.command, "graphify . --no-viz")
+            self.assertTrue(
+                any("approve execution" in (r.command or "") for r in advice.recommendations)
+            )
+
+    def test_rejected_output_entry_recommends_configuration_repair_without_command(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            make_state(base, current_phase=Phase.PLANNING)
+            enable_graphify(base)
+            rejected_entry = base / "graphify-out" / "graph.json"
+            rejected_entry.mkdir(parents=True)
+
+            advice = advisor.advise(base)
+
+            rec = next(r for r in advice.recommendations if "Graphify" in r.action)
+            self.assertEqual(rec.priority, advisor.PRIORITY_MEDIUM)
+            self.assertEqual(rec.action, "Repair the Graphify output configuration")
+            self.assertIsNone(rec.command)
+
+    def test_strict_resolution_failure_recommends_configuration_repair_without_command(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            make_state(base, current_phase=Phase.PLANNING)
+            enable_graphify(base)
+            output = base / "graphify-out" / "graph.json"
+            output.parent.mkdir()
+            output.write_text("{}\n", encoding="utf-8")
+            original_resolve = Path.resolve
+
+            def fail_graph_strict_resolution(path, *args, **kwargs):
+                if path.name == "graph.json" and kwargs.get("strict") is True:
+                    raise FileNotFoundError("graph disappeared after metadata inspection")
+                return original_resolve(path, *args, **kwargs)
+
+            with mock.patch.object(
+                Path,
+                "resolve",
+                new=fail_graph_strict_resolution,
+            ):
+                advice = advisor.advise(base)
+
+            rec = next(r for r in advice.recommendations if "Graphify" in r.action)
+            self.assertEqual(rec.priority, advisor.PRIORITY_MEDIUM)
+            self.assertEqual(rec.action, "Repair the Graphify output configuration")
+            self.assertIsNone(rec.command)
+
+    def test_unsafe_output_path_recommends_configuration_repair_without_command(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            state = make_state(base, current_phase=Phase.PLANNING)
+            context = advisor.AdvisorContext(
+                base=base,
+                state=state,
+                phase=Phase.PLANNING,
+                has_brief=False,
+                has_handoffs=False,
+                top_skill_id=None,
+                top_skill_prepared=False,
+                evaluation=PhaseEvaluation(Phase.PLANNING),
+                graph_context_status=advisor.graph_context.GraphContextStatus(
+                    enabled=True,
+                    state=advisor.graph_context.STATE_MISSING,
+                    graph_path="graphify-out/graph.json",
+                    report_path="graphify-out/GRAPH_REPORT.md",
+                    query_budget=1200,
+                    output_path_usable=False,
+                ),
+            )
+
+            recommendations = advisor.rule_graphify_context(context)
+
+            self.assertEqual(len(recommendations), 1)
+            recommendation = recommendations[0]
+            self.assertEqual(recommendation.priority, advisor.PRIORITY_MEDIUM)
+            self.assertEqual(
+                recommendation.action,
+                "Repair the Graphify output configuration",
+            )
+            self.assertIsNone(recommendation.command)
+
+    def test_partial_graph_recommends_repair(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            make_state(base, current_phase=Phase.EXECUTION)
+            enable_graphify(base)
+            out = base / "graphify-out"
+            out.mkdir()
+            (out / "graph.json").write_text("{}\n", encoding="utf-8")
+            advice = advisor.advise(base)
+            self.assertIn("Repair the external Graphify knowledge graph", actions(advice))
+
+    def test_ready_graph_has_no_preparation_recommendation(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            make_state(base, current_phase=Phase.FINAL_VALIDATION)
+            enable_graphify(base)
+            out = base / "graphify-out"
+            out.mkdir()
+            (out / "graph.json").write_text("{}\n", encoding="utf-8")
+            (out / "GRAPH_REPORT.md").write_text("# Report\n", encoding="utf-8")
+            advice = advisor.advise(base)
+            self.assertFalse(any("Graphify" in action for action in actions(advice)))
+
+    def test_inactive_phases_never_recommend_graphify(self):
+        inactive = (Phase.IDEA, Phase.VALIDATION, Phase.BRIEF, Phase.SETUP_ADVICE, Phase.DONE)
+        for phase in inactive:
+            with self.subTest(phase=phase), tempfile.TemporaryDirectory() as d:
+                base = Path(d)
+                make_state(base, current_phase=phase)
+                enable_graphify(base)
+                advice = advisor.advise(base)
+                self.assertFalse(any("Graphify" in action for action in actions(advice)))
+
+    def test_required_evidence_stays_ahead_of_graphify_advice(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            make_state(base, current_phase=Phase.PLANNING)
+            enable_graphify(base)
+            advice = advisor.advise(base)
+            ordered_actions = actions(advice)
+            self.assertLess(
+                ordered_actions.index("Produce the required 'PRD' artifact"),
+                ordered_actions.index("Prepare the external Graphify knowledge graph"),
+            )
+            gate = next(r for r in advice.recommendations if "approve execution" in (r.command or ""))
+            self.assertEqual(gate.priority, advisor.PRIORITY_LOW)
 
 
 class OrderingAndStabilityTests(unittest.TestCase):

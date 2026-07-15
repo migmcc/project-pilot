@@ -17,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import artifact_store, phase_requirements
+from . import artifact_store, graph_context, phase_requirements
 from .phases import NEXT_ACTION, Phase, phase_label
 from .state import ProjectState, state_dir
 
@@ -33,6 +33,14 @@ OUTPUT_SUBDIR = Path("projectpilot_outputs") / "prompts"
 
 #: How many of the most recent history events to surface as "handoffs".
 _MAX_HANDOFFS = 5
+
+_GRAPH_CONTEXT_PHASES = frozenset(
+    {
+        Phase.PLANNING.value,
+        Phase.EXECUTION.value,
+        Phase.FINAL_VALIDATION.value,
+    }
+)
 
 #: Known ProjectPilot-produced artifacts (relative to the project dir). Only the
 #: ones that actually exist on disk are listed -- this never invents files.
@@ -74,6 +82,7 @@ class PromptContext:
     completion: int | None = None
     #: Labels of the required artifacts still missing for the current phase.
     missing_requirements: list[str] = field(default_factory=list)
+    graph_context_status: graph_context.GraphContextStatus | None = None
 
 
 def _collect_handoffs(state: ProjectState) -> list[str]:
@@ -164,6 +173,7 @@ def collect_context(state: ProjectState, base: Path) -> PromptContext:
         registered_artifacts=_collect_artifacts(base),
         completion=evaluation.completion,
         missing_requirements=[status.label for status in evaluation.missing],
+        graph_context_status=graph_context.inspect_graph_context(base),
     )
 
 
@@ -227,6 +237,12 @@ def build_prompt(
     context_lines = _context_block(context)
     if context_lines:
         out += _section("Project context", context_lines)
+
+    status = context.graph_context_status
+    if status is not None and context.phase_value in _GRAPH_CONTEXT_PHASES:
+        directive = graph_context.render_query_directive(status, skill_name)
+        if directive:
+            out += _section("Context retrieval", directive.splitlines())
 
     skill_lines: list[str] = []
     if skill_description:

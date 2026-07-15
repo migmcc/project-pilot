@@ -23,6 +23,20 @@ def _progress_bar(completion: int) -> str:
     return f"{filled_char * filled}{empty_char * (_BAR_WIDTH - filled)} {completion}%"
 
 
+def _context_lines(dash: dashboard_mod.Dashboard) -> list[str]:
+    status = dash.graph_context_status
+    if status is None or not status.enabled:
+        return []
+    return [
+        "",
+        "Knowledge context",
+        "",
+        "Provider: Graphify",
+        f"Status: {status.state.title()}",
+        f"Query budget: {status.query_budget} tokens",
+    ]
+
+
 def _render_text(dash: dashboard_mod.Dashboard, *, verbose: bool) -> list[str]:
     header = "Project Health"
     if dash.project_name:
@@ -31,12 +45,14 @@ def _render_text(dash: dashboard_mod.Dashboard, *, verbose: bool) -> list[str]:
 
     if not dash.initialized:
         lines.append("ProjectPilot is not initialized in this directory.")
+        lines += _context_lines(dash)
         lines += _recommendation_lines(dash, verbose=verbose)
         return lines
 
     lines.append(f"Phase: {phase_label(dash.phase)}")
     lines.append(_progress_bar(dash.completion or 0))
     lines += ["", "Ready to progress:", "Yes" if dash.ready_to_progress else "No"]
+    lines += _context_lines(dash)
 
     if verbose:
         lines += ["", "Completed requirements:"]

@@ -157,7 +157,7 @@ def load_config(base: Path) -> Config:
         return Config()
     try:
         text = path.read_text(encoding="utf-8")
-    except OSError:
+    except (OSError, UnicodeError):
         return Config()
     return parse_config(text)
 
@@ -175,6 +175,6 @@ def load_mapping(base: Path) -> dict[str, object]:
         return {}
     try:
         text = path.read_text(encoding="utf-8")
-    except OSError:
+    except (OSError, UnicodeError):
         return {}
     return _parse(text)

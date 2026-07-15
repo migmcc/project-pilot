@@ -18,11 +18,11 @@ Design:
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
-from . import artifact_store, phase_requirements
+from . import artifact_store, graph_context, phase_requirements
 from . import recommend, skills
 from .errors import StateNotFoundError
 from .phase_requirements import PhaseEvaluation
@@ -43,6 +43,7 @@ __all__ = [
     "rule_missing_requirements",
     "rule_execution_readiness",
     "rule_missing_brief",
+    "rule_graphify_context",
     "rule_no_handoffs",
     "rule_project_done",
     "RULES",
@@ -59,6 +60,9 @@ _PRIORITY_RANK = {PRIORITY_HIGH: 0, PRIORITY_MEDIUM: 1, PRIORITY_LOW: 2}
 #: Phases that come after the brief has been imported.
 _PAST_BRIEF = frozenset(
     {Phase.SETUP_ADVICE, Phase.PLANNING, Phase.EXECUTION, Phase.FINAL_VALIDATION, Phase.DONE}
+)
+_GRAPH_CONTEXT_PHASES = frozenset(
+    {Phase.PLANNING, Phase.EXECUTION, Phase.FINAL_VALIDATION}
 )
 
 BRIEF_FILENAME = "PROJECT_BRIEF.md"
@@ -113,6 +117,16 @@ class AdvisorContext:
     top_skill_id: str | None
     top_skill_prepared: bool
     evaluation: PhaseEvaluation
+    graph_context_status: graph_context.GraphContextStatus = field(
+        default_factory=lambda: graph_context.GraphContextStatus(
+            enabled=False,
+            state=graph_context.STATE_DISABLED,
+            graph_path=f"{graph_context.DEFAULT_OUTPUT_DIR}/graph.json",
+            report_path=f"{graph_context.DEFAULT_OUTPUT_DIR}/GRAPH_REPORT.md",
+            query_budget=graph_context.DEFAULT_QUERY_BUDGET,
+            output_path_usable=False,
+        )
+    )
 
     @property
     def skill_ready_to_prepare(self) -> bool:
@@ -314,6 +328,53 @@ def rule_missing_brief(ctx: AdvisorContext) -> list[Recommendation]:
     return []
 
 
+def rule_graphify_context(ctx: AdvisorContext) -> list[Recommendation]:
+    """Suggest external Graphify preparation without blocking a lifecycle gate."""
+    status = ctx.graph_context_status
+    if (
+        ctx.phase not in _GRAPH_CONTEXT_PHASES
+        or not status.enabled
+        or status.state == graph_context.STATE_READY
+    ):
+        return []
+    if not status.output_path_usable:
+        return [
+            Recommendation(
+                priority=PRIORITY_MEDIUM,
+                action="Repair the Graphify output configuration",
+                reason=(
+                    "Graphify is enabled, but no safe project-internal output "
+                    "destination is available. Repair graphify_output_dir or "
+                    "the rejected output entries before running Graphify."
+                ),
+                command=None,
+                depends_on=f"Current {phase_label(ctx.phase)} phase",
+            )
+        ]
+    partial = status.state == graph_context.STATE_PARTIAL
+    action = (
+        "Repair the external Graphify knowledge graph"
+        if partial
+        else "Prepare the external Graphify knowledge graph"
+    )
+    reason = (
+        "Graphify is enabled, but its expected outputs are incomplete. "
+        "Prepare them outside ProjectPilot before relying on graph-first retrieval."
+        if partial
+        else "Graphify is enabled, but no complete graph output is available. "
+        "Prepare it outside ProjectPilot to enable graph-first retrieval."
+    )
+    return [
+        Recommendation(
+            priority=PRIORITY_MEDIUM,
+            action=action,
+            reason=reason,
+            command="graphify . --no-viz",
+            depends_on=f"Current {phase_label(ctx.phase)} phase",
+        )
+    ]
+
+
 def rule_no_handoffs(ctx: AdvisorContext) -> list[Recommendation]:
     """Nudge recording progress when no lifecycle handoffs exist yet."""
     if ctx.has_handoffs or ctx.phase is Phase.DONE:
@@ -348,6 +409,7 @@ RULES: list[Callable[[AdvisorContext], list[Recommendation]]] = [
     rule_missing_requirements,
     rule_execution_readiness,
     rule_missing_brief,
+    rule_graphify_context,
     rule_no_handoffs,
     rule_project_done,
 ]
@@ -410,6 +472,7 @@ def _build_context(base: Path, state: ProjectState) -> AdvisorContext:
         top_skill_id=top_skill_id,
         top_skill_prepared=top_skill_prepared,
         evaluation=phase_requirements.evaluate(phase, artifacts),
+        graph_context_status=graph_context.inspect_graph_context(base),
     )
 
 

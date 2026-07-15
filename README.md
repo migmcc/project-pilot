@@ -91,6 +91,14 @@ ateam_readiness_paths:
 
 Defaults are unchanged when the keys are absent, so existing projects behave identically.
 
+### Optional Graphify context
+
+ProjectPilot can optionally detect Graphify outputs and tell agents to query a
+small graph context before broad file search. The integration is advisory-only:
+ProjectPilot never installs, runs, updates, or imports Graphify, and no lifecycle
+gate depends on it. See [docs/graphify-integration.md](docs/graphify-integration.md)
+for configuration, privacy, freshness, and the token-saving pilot.
+
 ## Canonical lifecycle phases (D5)
 
 ```text
@@ -115,6 +123,7 @@ in the subsystems below.
 | Phase requirements | `phase_requirements.py` | Which artifacts a phase expects | `evaluate`, `requirements_for` |
 | Workflow advisor | `advisor.py` | Suggest the next step | `advise` |
 | Dashboard | `dashboard.py` | Aggregate the above into one view | `collect` |
+| Graph context | `graph_context.py` | Inspect optional Graphify outputs; render compact query guidance | `GraphContextStatus`, `inspect_graph_context`, `render_query_directive` |
 
 Two shared helpers keep the surface consistent: `phases.phase_label(phase)` is the single source of a
 phase's display name, and `console.py` centralises terminal-output capability (`glyphs` for
@@ -251,6 +260,8 @@ python -m projectpilot skill recommend               # suggest skills for the cu
 python -m projectpilot skill use <skill-id>          # build a consolidated prompt for a skill
 python -m projectpilot skill use                     # wizard: choose from phase recommendations
 ```
+
+When configured, `pp doctor` also reports optional Graphify readiness.
 
 State is stored in `.project-pilot/status.json`.
 

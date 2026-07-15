@@ -10,6 +10,12 @@ published to PyPI, and the `v1.0.0` tag is applied manually.
 
 ### Added
 - Added a version-consistency test covering `pyproject.toml` and `projectpilot.__version__`.
+- Added an experimental, opt-in Graphify context integration: safe output
+  readiness detection, compact graph-first prompt guidance, non-blocking advisor
+  advice, additive dashboard context, and read-only doctor diagnostics. Tolerant
+  config decoding disables the feature on invalid UTF-8, and rejected output
+  paths receive commandless repair guidance. Graphify remains external;
+  ProjectPilot adds no dependency and executes nothing.
 
 ## [1.0.0] - 2026-07-03
 

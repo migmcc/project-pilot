@@ -1,9 +1,10 @@
 """``pp doctor`` -- report on the local environment (read-only, changes nothing)."""
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
-from .. import ateam, detectors
+from .. import ateam, detectors, graph_context
 
 
 def _mark(ok: bool) -> str:
@@ -32,6 +33,23 @@ def run_doctor(args) -> int:
         lines.append(f"- Git repository: invalid ({git.detail})")
     else:
         lines.append("- Git repository: missing (not inside a git repository)")
+
+    context = graph_context.inspect_graph_context(base)
+    lines.append("")
+    lines.append("Knowledge context:")
+    lines.append(
+        f"- Graphify integration: {'enabled' if context.enabled else 'disabled'}"
+    )
+    if context.enabled:
+        lines.append(
+            f"- Graphify command on PATH: {_yes_no(shutil.which('graphify') is not None)}"
+        )
+        lines.append(f"- Graphify outputs: {context.state}")
+        lines.append(f"- Graph path: {context.graph_path}")
+        lines.append(f"- Report path: {context.report_path}")
+        lines.append(f"- Query budget: {context.query_budget}")
+    for diagnostic in context.diagnostics:
+        lines.append(f"- Configuration: {diagnostic}")
 
     # Global Claude / A-team environment
     env = ateam.inspect_env(home)

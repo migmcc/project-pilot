@@ -7,6 +7,7 @@ from pathlib import Path
 
 from projectpilot import artifact_store
 from projectpilot.cli import main
+from projectpilot.config import config_path
 from projectpilot.phases import Phase
 from projectpilot.state import ProjectState, save_state
 
@@ -32,6 +33,17 @@ def register(base: Path, rel: str, phase="planning"):
     artifact_store.add_artifact(base, path, phase, clock=lambda: "2026-07-01T00:00:00Z")
 
 
+def configure_graphify(base: Path, *, ready: bool) -> None:
+    path = config_path(base)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("graphify_enabled: true\n", encoding="utf-8")
+    if ready:
+        out = base / "graphify-out"
+        out.mkdir()
+        (out / "graph.json").write_text("{}\n", encoding="utf-8")
+        (out / "GRAPH_REPORT.md").write_text("# Report\n", encoding="utf-8")
+
+
 class DashboardCliFixture(unittest.TestCase):
     def _run(self, argv):
         out = io.StringIO()
@@ -41,6 +53,60 @@ class DashboardCliFixture(unittest.TestCase):
 
 
 class DashboardTextTests(DashboardCliFixture):
+    def test_enabled_graphify_context_renders_status_and_budget(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            seed_state(base)
+            configure_graphify(base, ready=True)
+            rc, text = self._run(["dashboard", "--dir", d])
+            self.assertEqual(rc, 0)
+            context = (
+                "Knowledge context\n\n"
+                "Provider: Graphify\n"
+                "Status: Ready\n"
+                "Query budget: 1200 tokens"
+            )
+            self.assertIn(f"Ready to progress:\nNo\n\n{context}", text)
+            self.assertIn(f"{context}\n\nTop recommendation", text)
+
+    def test_enabled_graphify_context_precedes_uninitialized_recommendation(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            configure_graphify(base, ready=False)
+            rc, text = self._run(["dashboard", "--dir", d])
+            self.assertEqual(rc, 0)
+            context = (
+                "Knowledge context\n\n"
+                "Provider: Graphify\n"
+                "Status: Missing\n"
+                "Query budget: 1200 tokens"
+            )
+            self.assertIn(
+                "ProjectPilot is not initialized in this directory.\n\n"
+                f"{context}\n\nTop recommendation",
+                text,
+            )
+
+    def test_graphify_context_lines_are_independent_of_verbose_mode(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            seed_state(base)
+            configure_graphify(base, ready=True)
+            _, plain = self._run(["dashboard", "--dir", d])
+            _, verbose = self._run(["dashboard", "--verbose", "--dir", d])
+            expected = [
+                "Knowledge context",
+                "",
+                "Provider: Graphify",
+                "Status: Ready",
+                "Query budget: 1200 tokens",
+            ]
+            for label, text in (("plain", plain), ("verbose", verbose)):
+                with self.subTest(mode=label):
+                    lines = text.splitlines()
+                    start = lines.index("Knowledge context")
+                    self.assertEqual(lines[start : start + len(expected)], expected)
+
     def test_uninitialized(self):
         with tempfile.TemporaryDirectory() as d:
             rc, text = self._run(["dashboard", "--dir", d])
@@ -91,6 +157,17 @@ class DashboardTextTests(DashboardCliFixture):
 
 
 class DashboardJsonTests(DashboardCliFixture):
+    def test_enabled_graphify_context_is_present_in_json(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            seed_state(base)
+            configure_graphify(base, ready=False)
+            rc, text = self._run(["dashboard", "--json", "--dir", d])
+            self.assertEqual(rc, 0)
+            payload = json.loads(text)
+            self.assertEqual(payload["context"]["provider"], "graphify")
+            self.assertEqual(payload["context"]["status"], "missing")
+
     def test_json_shape(self):
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)

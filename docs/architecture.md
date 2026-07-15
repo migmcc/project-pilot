@@ -37,6 +37,10 @@ graph TD
         DASH["dashboard.py<br/>aggregated overview"]
     end
 
+    subgraph Context
+        GRAPHCTX["graph_context.py<br/>optional Graphify readiness + directive"]
+    end
+
     CLI --> CMDS
     CMDS --> STATE
     CMDS --> SKILLS
@@ -46,6 +50,7 @@ graph TD
     CMDS --> REQS
     CMDS --> ADVISOR
     CMDS --> DASH
+    CMDS --> GRAPHCTX
 
     RECOMMEND --> SKILLS
     PROMPT --> ARTIFACTS
@@ -62,6 +67,9 @@ graph TD
     DASH --> ARTIFACTS
     DASH --> SKILLS
     DASH --> RECOMMEND
+    ADVISOR --> GRAPHCTX
+    PROMPT --> GRAPHCTX
+    DASH --> GRAPHCTX
 
     STATE --> PHASES
     ADVISOR --> PHASES
@@ -84,6 +92,7 @@ graph TD
 | Phase requirements | `phase_requirements.py` | Which artifacts a phase expects; completion | `evaluate`, `requirements_for`, `REQUIREMENTS` |
 | Workflow advisor | `advisor.py` | Suggest the next step | `advise` |
 | Dashboard | `dashboard.py` | Aggregate the above into one view | `collect` |
+| Graph context | `graph_context.py` | Inspect optional Graphify outputs; render compact query guidance | `GraphContextStatus`, `inspect_graph_context`, `render_query_directive` |
 | Console | `console.py` | Terminal-output capability | `glyphs`, `encodable`, `make_output_resilient` |
 
 ## Design principles
@@ -96,6 +105,9 @@ graph TD
   no workflow rules of its own.
 - **Metadata, never contents.** The artifact store and everything downstream read only artifact
   metadata (path, size, SHA-256, type, phase) — never the file contents.
+- **External context stays advisory.** ProjectPilot checks only configuration, safe path containment,
+  output-file presence, and ordinary file metadata. It never reads or parses the contents of
+  `graph.json` or `GRAPH_REPORT.md`, and never imports, executes, or updates Graphify.
 - **Deterministic output.** Given the same recorded state, text and `--json` output are byte-identical,
   so JSON is safe to consume from other tools.
 
