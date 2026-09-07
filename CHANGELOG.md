@@ -3,10 +3,15 @@
 All notable changes to ProjectPilot are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/). ProjectPilot is local-first and stdlib-only. The current
-release is **v1.0.0**, a **private/local** release: the repository stays private, nothing is
-published to PyPI, and the `v1.0.0` tag is applied manually.
+release is **v1.0.0**. Nothing is published to PyPI — the source is the distribution — and version
+tags are applied manually.
 
 ## [Unreleased]
+
+### Changed
+- Documentation no longer describes the repository as private, and now separates *local-first
+  execution* from *distribution*. Distribution itself is unchanged: still not published to PyPI,
+  and the `Private :: Do Not Upload` classifier stays in `pyproject.toml`.
 
 ### Added
 - Added a version-consistency test covering `pyproject.toml` and `projectpilot.__version__`.
@@ -25,10 +30,11 @@ published to PyPI, and the `v1.0.0` tag is applied manually.
 
 ## [1.0.0] - 2026-07-03
 
-First stable release — **private/local**: the repository remains private, nothing is published to
-PyPI (the `Private :: Do Not Upload` classifier stays), and no GitHub Release is created; the
-`v1.0.0` tag is applied manually. Packages the v1.0.0-rc.1 scope (below) plus the audit remediation
-validated during the RC (PP-AUDIT-001 through 004 and 006), and finalizes the release metadata
+First stable release — **private/local at the time of release**: the repository was private,
+nothing is published to PyPI (the `Private :: Do Not Upload` classifier stays), and no GitHub
+Release is created; the `v1.0.0` tag is applied manually. Packages the v1.0.0-rc.1 scope (below)
+plus the audit remediation validated during the RC (PP-AUDIT-001 through 004 and 006), and
+finalizes the release metadata
 (version `1.0.0`, `Development Status :: 5 - Production/Stable`).
 
 ### Added

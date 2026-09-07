@@ -9,7 +9,7 @@ ProjectPilot: a local, deterministic, stdlib-only CLI (`pp`) that orchestrates a
 (`idea → validation → brief → setup-advice → planning → execution → final-validation → done`) with
 explicit human approval gates. **Orchestration, not execution** — see Charter below.
 
-Python 3.12+ · zero runtime dependencies · `unittest` only (no pytest) · private repo, never on PyPI.
+Python 3.12+ · zero runtime dependencies · `unittest` only (no pytest) · never on PyPI.
 
 ## Commands
 

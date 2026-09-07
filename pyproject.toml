@@ -31,7 +31,8 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Build Tools",
-    # Local/private-first project: never upload to a public package index.
+    # Local-first project: the source is the distribution. Guard against an accidental
+    # upload to a public package index. Unrelated to repository visibility.
     "Private :: Do Not Upload",
 ]
 

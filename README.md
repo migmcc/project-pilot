@@ -4,13 +4,11 @@ A local, deterministic CLI that orchestrates and **enforces** a project's lifecy
 existing tooling ecosystem. It does not execute technically and never reimplements the A-Team or
 AgentDesk — it is a process conductor with explicit approval gates.
 
-> **Status:** **v1.0.0 — first stable release** (private/local).
+> **Status:** **v1.0.0 — first stable release.**
 > Full lifecycle (`idea → done`), Python 3.12+, stdlib-only, zero runtime dependencies, deterministic
-> output. **Local-first:** designed for a local/private repository; ProjectPilot never publishes,
-> pushes, tags, releases, or installs anything itself. Licensed under the [MIT License](LICENSE) but
-> not distributed on PyPI.
-
-<!-- Public-release TODO: add a short demo GIF or screenshot of `pp dashboard` / `pp next` here. -->
+> output. **Local-first:** everything runs on your machine; ProjectPilot never publishes, pushes,
+> tags, releases, or installs anything itself. Licensed under the [MIT License](LICENSE).
+> Deliberately **not distributed on PyPI** — install from source (see below).
 
 ## Why ProjectPilot?
 
@@ -821,23 +819,11 @@ API, or VCS/release/install automation.
 A GitHub Actions workflow (`.github/workflows/ci.yml`) runs the unit tests and the no-automation
 guard on Python 3.12 and 3.13, with no external dependencies and no pytest.
 
-## Screenshots & GitHub presentation
+## Distribution
 
-> This section is prepared for a possible future public release. The repository is **private and
-> local-first today** and is **not published to PyPI** (`Private :: Do Not Upload`). None of the assets
-> below are required to use ProjectPilot.
+ProjectPilot is **not published to PyPI** and never will be by the tool itself. The source is the
+distribution: clone the repository and run it, or `pip install -e .` for a local `pp` entry point.
+The `Private :: Do Not Upload` classifier in `pyproject.toml` is a deliberate guard against an
+accidental package-index upload — it says nothing about the visibility of this repository.
 
-Placeholders to fill in before making the repository public:
-
-- **Demo GIF** — a short screen capture of `pp dashboard` and `pp next` on a real project.
-  <!-- ![ProjectPilot dashboard demo](docs/assets/dashboard.gif) -->
-- **Screenshots** — `pp phase check --verbose`, `pp skill recommend`, and a generated prompt from
-  `pp skill use`.
-  <!-- ![pp phase check](docs/assets/phase-check.png) -->
-- **Suggested GitHub topics** — `cli`, `workflow`, `orchestration`, `lifecycle`, `project-management`,
-  `deterministic`, `ai-agents`, `prompt-engineering`, `python`, `stdlib`.
-- **GitHub Release notes** — draft per version lives in [CHANGELOG.md](CHANGELOG.md); the release-note
-  text for a tag can be lifted from that version's section.
-
-Everything shown in the examples above is real CLI output, so screenshots can be captured directly by
-running the commands in a scratch project.
+Releases are plain annotated tags; the notes for any version live in [CHANGELOG.md](CHANGELOG.md).
