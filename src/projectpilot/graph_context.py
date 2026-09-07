@@ -88,13 +88,25 @@ def _query_budget(value: object, diagnostics: list[str]) -> int:
     return DEFAULT_QUERY_BUDGET
 
 
+def _resolve_path(path: Path) -> Path:
+    """Resolve ``path``, rejecting malformed input on every supported Python.
+
+    ``Path.resolve()`` raises ``ValueError`` for an embedded NUL byte on Python
+    3.12 but returns the corrupt path unchanged on 3.13, so the rejection is
+    explicit here instead of relying on interpreter behavior.
+    """
+    if "\x00" in str(path):
+        raise ValueError("embedded null byte in path")
+    return path.resolve()
+
+
 def _output_directory(
     base: Path,
     value: object,
     diagnostics: list[str],
 ) -> tuple[Path | None, str, Path | None]:
     try:
-        root = Path(base).resolve()
+        root = _resolve_path(Path(base))
     except _PATH_ERRORS:
         diagnostics.append(
             "project directory cannot be resolved; Graphify outputs will not be inspected."
@@ -112,7 +124,7 @@ def _output_directory(
     candidate = Path(raw.strip())
     unresolved = candidate if candidate.is_absolute() else root / candidate
     try:
-        resolved = unresolved.resolve()
+        resolved = _resolve_path(unresolved)
     except _PATH_ERRORS:
         if using_default:
             diagnostics.append(
@@ -146,7 +158,7 @@ def _fallback_output_directory(
     diagnostics: list[str],
 ) -> tuple[Path | None, str, Path]:
     try:
-        resolved = (root / DEFAULT_OUTPUT_DIR).resolve()
+        resolved = _resolve_path(root / DEFAULT_OUTPUT_DIR)
     except _PATH_ERRORS:
         diagnostics.append(
             "default graphify-out directory cannot be resolved; "

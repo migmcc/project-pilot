@@ -17,6 +17,12 @@ published to PyPI, and the `v1.0.0` tag is applied manually.
   paths receive commandless repair guidance. Graphify remains external;
   ProjectPilot adds no dependency and executes nothing.
 
+### Fixed
+- Graphify output-path validation no longer depends on interpreter behavior. Path resolution
+  rejected an embedded NUL byte only on Python 3.12; on 3.13 the malformed path passed through
+  and reached `pp doctor` output instead of falling back to `graphify-out`. The rejection is now
+  explicit, so containment behaves identically on both supported versions.
+
 ## [1.0.0] - 2026-07-03
 
 First stable release — **private/local**: the repository remains private, nothing is published to
