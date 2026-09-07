@@ -1,0 +1,4 @@
+# Every pull request requests review from the maintainer automatically.
+# Takes effect on a public repository, or on a private one with branch protection.
+
+* @migmcc

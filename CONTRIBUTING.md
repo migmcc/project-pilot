@@ -17,6 +17,20 @@ contribution:
 - **Orchestrate, don't execute.** ProjectPilot conducts a lifecycle and prepares context; it never
   runs the work, validates content, or approves results automatically.
 
+## Proposing a change
+
+Open an **issue first** for anything beyond a small fix — a new command, a change to recorded
+state or output format, a new configuration key, or anything that touches the charter above. A
+short description of the problem and the approach you have in mind is enough. This is not
+bureaucracy: the charter rules out a lot of otherwise reasonable ideas, and finding that out in
+an issue costs you far less than finding it out after the code is written.
+
+Small, self-contained changes go straight to a pull request: a typo, a documentation correction,
+or a clear bug accompanied by a failing test.
+
+Every pull request runs the full CI matrix (Python 3.12 and 3.13) automatically. A red run will
+not be reviewed — fix it, or say in the pull request where you are stuck.
+
 ## Development setup
 
 Python **3.12+** is required. No install is needed to run from source:
