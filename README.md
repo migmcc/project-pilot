@@ -827,3 +827,22 @@ The `Private :: Do Not Upload` classifier in `pyproject.toml` is a deliberate gu
 accidental package-index upload — it says nothing about the visibility of this repository.
 
 Releases are plain annotated tags; the notes for any version live in [CHANGELOG.md](CHANGELOG.md).
+
+## Acknowledgements
+
+ProjectPilot orchestrates tools it does not contain. None of the following is bundled,
+vendored, or redistributed here — ProjectPilot only detects them, reads their metadata, and
+(for the A-Team, on explicit request) copies a toolkit you already have on your own machine.
+They are credited because the workflow this tool conducts was built around them.
+
+- **[A-Team](https://github.com/RBraga01/a-team)** by [@RBraga01](https://github.com/RBraga01)
+  — the primary execution engine: multi-agent infrastructure of specialist agents and
+  enforced workflow skills. MIT licensed. `pp check-ateam` and `pp setup ateam` are built
+  against its file convention.
+- **[Graphify](https://github.com/migmcc/graphify)** — the optional knowledge-graph context
+  integration (`graphify_enabled`). MIT licensed. ProjectPilot never installs, starts, or
+  queries it; it only detects an already-built graph.
+- **[AgentDesk](https://github.com/migmcc/AgentDesk)** — complementary local-first
+  orchestration. MIT licensed.
+
+SkillLab (idea validation) is referenced in the lifecycle but is not publicly available.
