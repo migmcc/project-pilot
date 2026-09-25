@@ -302,6 +302,20 @@ class AtomicWriteTests(unittest.TestCase):
 
 
 class ProjectLockTests(unittest.TestCase):
+    def test_lock_directory_failure_is_reported_cleanly(self):
+        with tempfile.TemporaryDirectory() as d:
+            with mock.patch.object(Path, "mkdir", side_effect=OSError("mkdir failure")):
+                try:
+                    with project_lock(Path(d)):
+                        self.fail("lock unexpectedly acquired")
+                except BaseException as exc:
+                    caught = exc
+
+            self.assertIsInstance(caught, ProjectPilotError)
+            self.assertNotIsInstance(caught, ProjectBusyError)
+            self.assertIn("Could not acquire", str(caught))
+            self.assertIn("mkdir failure", str(caught))
+
     def test_lock_io_failure_is_not_reported_as_contention(self):
         with tempfile.TemporaryDirectory() as d:
             with mock.patch.object(Path, "open", side_effect=OSError("disk failure")):

@@ -739,6 +739,9 @@ degrades to `#`/`-` automatically. Like the artifact tracker, the dashboard read
     hooks/settings is deferred to a future run;
   - the **source is never modified** and **never deleted**.
 
+Concurrent installs coordinate through `~/.claude/.project-pilot/.lock`. The small file may remain
+after the command because operating-system lock ownership, not file presence, indicates activity.
+
 The real A-team install therefore stays under your explicit control: nothing reaches `~/.claude`
 without `--apply`, and nothing is ever deleted or overwritten.
 

@@ -87,10 +87,10 @@ def project_lock(base: Path):
     not file presence, determines ownership and is released on process exit.
     """
     directory = state_dir(base)
-    directory.mkdir(parents=True, exist_ok=True)
     lock_path = directory / LOCK_FILENAME
     target = Path(base).resolve()
     try:
+        directory.mkdir(parents=True, exist_ok=True)
         handle = lock_path.open("a+b")
     except OSError as exc:
         raise ProjectPilotError(f"Could not acquire a lock for {target}: {exc}") from exc

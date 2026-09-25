@@ -97,6 +97,7 @@ class ApplyTests(unittest.TestCase):
             self.assertTrue((claude / "skills" / "skill-a" / "SKILL.md").is_file())
             self.assertTrue((claude / "agents" / "agent-a.md").is_file())
             self.assertTrue((claude / "commands" / "cmd-a.md").is_file())
+            self.assertIn("- .claude\n", text)
             self.assertIn("copied", text)
 
     def test_apply_is_rejected_while_target_is_busy(self):
