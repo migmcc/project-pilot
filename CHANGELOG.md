@@ -9,11 +9,21 @@ tags are applied manually.
 ## [Unreleased]
 
 ### Changed
+- Main now identifies as `1.1.0.dev0` (Beta) so development code cannot be mistaken for the
+  `v1.0.0` release; Python 3.14 is included in the supported/tested metadata.
+- CI now tests Python 3.12–3.14 and adds Ruff, a 90% branch-coverage floor, wheel build plus
+  installed-package smoke testing, least-privilege permissions, concurrency cancellation, and a
+  full-history Gitleaks scan.
+- Setup instructions now install the `src`-layout package before invoking it, and document a
+  release-tag install for reproducible stable use.
 - Documentation no longer describes the repository as private, and now separates *local-first
   execution* from *distribution*. Distribution itself is unchanged: still not published to PyPI,
   and the `Private :: Do Not Upload` classifier stays in `pyproject.toml`.
 
 ### Added
+- Added a cross-process project mutation lock. Concurrent mutating commands fail with a clear retry
+  message instead of racing a read-modify-write cycle.
+- Added a `dev` dependency extra and checked-in Ruff/coverage policy.
 - Added a version-consistency test covering `pyproject.toml` and `projectpilot.__version__`.
 - Added an experimental, opt-in Graphify context integration: safe output
   readiness detection, compact graph-first prompt guidance, non-blocking advisor
@@ -23,6 +33,10 @@ tags are applied manually.
   ProjectPilot adds no dependency and executes nothing.
 
 ### Fixed
+- Atomic writes now use unique same-directory temporary files and tolerate transient concurrent
+  `os.replace` contention on Windows.
+- Security and artifact documentation now states the two deliberate reads/writes precisely:
+  `setup ateam --apply` writes under `~/.claude`, and artifact registration reads bytes to hash them.
 - Graphify output-path validation no longer depends on interpreter behavior. Path resolution
   rejected an embedded NUL byte only on Python 3.12; on 3.13 the malformed path passed through
   and reached `pp doctor` output instead of falling back to `graphify-out`. The rejection is now

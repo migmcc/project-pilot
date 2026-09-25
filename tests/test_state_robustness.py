@@ -8,14 +8,16 @@ import contextlib
 import io
 import json
 import tempfile
+import threading
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest import mock
 
 from projectpilot import state as state_mod
 from projectpilot.cli import main
 from projectpilot.errors import ProjectPilotError, StateCorruptedError
-from projectpilot.state import atomic_write_text, load_state, state_dir, state_path
+from projectpilot.state import atomic_write_text, load_state, project_lock, state_dir, state_path
 
 FROZEN = "2026-07-02T10:00:00Z"
 
@@ -248,6 +250,41 @@ class AtomicWriteTests(unittest.TestCase):
             self.assertEqual(target.read_text(encoding="utf-8"), "keep")
             self.assertEqual(list(Path(d).glob("*.tmp")), [])
 
+    def test_concurrent_writes_use_independent_temp_files(self):
+        """Two writers must not contend for the same temporary path."""
+        with tempfile.TemporaryDirectory() as d:
+            target = Path(d) / "data.json"
+            barrier = threading.Barrier(2)
+            real_replace = state_mod.os.replace
+            sources: list[Path] = []
+            sources_lock = threading.Lock()
+
+            def synchronized_replace(source, destination):
+                with sources_lock:
+                    sources.append(Path(source))
+                    invocation = len(sources)
+                if invocation <= 2:
+                    barrier.wait(timeout=5)
+                return real_replace(source, destination)
+
+            def write(payload: str):
+                try:
+                    atomic_write_text(target, payload)
+                except BaseException as exc:  # returned so both workers can finish
+                    return exc
+                return None
+
+            with mock.patch.object(
+                state_mod.os, "replace", side_effect=synchronized_replace
+            ):
+                with ThreadPoolExecutor(max_workers=2) as pool:
+                    errors = list(pool.map(write, ("one", "two")))
+
+            self.assertEqual(errors, [None, None])
+            self.assertEqual(len(set(sources)), 2)
+            self.assertIn(target.read_text(encoding="utf-8"), {"one", "two"})
+            self.assertEqual(list(Path(d).glob("*.tmp")), [])
+
     def test_save_state_and_inventory_leave_no_temp_files(self):
         with tempfile.TemporaryDirectory() as d:
             _init(d)
@@ -260,6 +297,26 @@ class AtomicWriteTests(unittest.TestCase):
             # Both files are valid JSON after the atomic writes.
             json.loads(state_path(Path(d)).read_text(encoding="utf-8"))
             json.loads((state_dir(Path(d)) / "artifacts.json").read_text(encoding="utf-8"))
+
+
+class ProjectLockTests(unittest.TestCase):
+    def test_second_project_lock_is_rejected(self):
+        """Only one read-modify-write operation may own a project at a time."""
+        with tempfile.TemporaryDirectory() as d:
+            with project_lock(Path(d)):
+                with self.assertRaises(ProjectPilotError):
+                    with project_lock(Path(d)):
+                        self.fail("a second project lock was acquired")
+
+    def test_mutating_command_reports_busy_project(self):
+        """CLI mutations must fail cleanly instead of racing a lock owner."""
+        with tempfile.TemporaryDirectory() as d:
+            with project_lock(Path(d)):
+                rc, out = _run(["init", "an idea", "--dir", d])
+
+            self.assertEqual(rc, 1)
+            self.assertIn("already modifying", out)
+            self.assertFalse(state_path(Path(d)).exists())
 
 
 class ValidStateUnchangedTests(unittest.TestCase):

@@ -28,21 +28,18 @@ an issue costs you far less than finding it out after the code is written.
 Small, self-contained changes go straight to a pull request: a typo, a documentation correction,
 or a clear bug accompanied by a failing test.
 
-Every pull request runs the full CI matrix (Python 3.12 and 3.13) automatically. A red run will
-not be reviewed — fix it, or say in the pull request where you are stuck.
+Every pull request runs the full CI matrix (Python 3.12, 3.13, and 3.14), lint, branch-coverage,
+package smoke, and secret-scan gates automatically. A red run will not be reviewed — fix it, or say
+in the pull request where you are stuck. Repository owners should apply the required branch rules in
+[docs/repository-settings.md](docs/repository-settings.md).
 
 ## Development setup
 
-Python **3.12+** is required. No install is needed to run from source:
+Python **3.12+** is required. Install the project and its development tools in editable mode:
 
 ```bash
-python -m projectpilot --help
-```
-
-Optionally expose the `pp` shortcut with an editable install:
-
-```bash
-pip install -e .
+python -m pip install -e ".[dev]"
+pp --help
 ```
 
 ## Running the tests
@@ -51,6 +48,9 @@ Tests use the standard library **`unittest`** only (no pytest, no plugins):
 
 ```bash
 python -m unittest discover -s tests -t .
+python -m ruff check src tests
+python -m coverage run -m unittest discover -s tests -t .
+python -m coverage report
 ```
 
 All tests must pass before a change is proposed. Please also run:

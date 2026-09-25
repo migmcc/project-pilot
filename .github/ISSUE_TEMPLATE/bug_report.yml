@@ -1,0 +1,42 @@
+name: Bug report
+description: Report reproducible incorrect ProjectPilot behavior.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Please search existing issues before filing a new report.
+  - type: input
+    id: version
+    attributes:
+      label: ProjectPilot version
+      description: Output of `python -c "import projectpilot; print(projectpilot.__version__)"`.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system and Python version.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Include the exact commands and the smallest safe fixture that reproduces the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Remove secrets and private project content from logs before posting.
+    validations:
+      required: true

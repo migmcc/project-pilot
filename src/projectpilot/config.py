@@ -93,7 +93,6 @@ def _parse(text: str) -> dict[str, object]:
     ignored. This is deliberately small and tolerant -- not a YAML engine.
     """
     result: dict[str, object] = {}
-    current_key: str | None = None
     current_list: list[str] | None = None
 
     for raw_line in text.splitlines():
@@ -117,7 +116,6 @@ def _parse(text: str) -> dict[str, object]:
         key, _, value = stripped.partition(":")
         key = key.strip()
         value = _strip_inline_comment(value.strip()).strip()
-        current_key = key
         current_list = None
 
         if not value:

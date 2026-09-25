@@ -5,6 +5,7 @@ from pathlib import Path
 
 __all__ = [
     "ProjectPilotError",
+    "ProjectBusyError",
     "StateCorruptedError",
     "StateExistsError",
     "StateNotFoundError",
@@ -13,6 +14,10 @@ __all__ = [
 
 class ProjectPilotError(Exception):
     """Base class for all ProjectPilot errors."""
+
+
+class ProjectBusyError(ProjectPilotError):
+    """Raised when another command owns the project's mutation lock."""
 
 
 class StateCorruptedError(ProjectPilotError):

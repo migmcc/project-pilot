@@ -6,6 +6,9 @@ build/
 dist/
 .venv/
 venv/
+.coverage
+htmlcov/
+.ruff_cache/
 
 # ProjectPilot state created in sample/scratch project dirs
 .project-pilot/

@@ -8,6 +8,7 @@ transition; commands that *complete* a phase's gate may advance the phase
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 from typing import Sequence
 
 from . import console
@@ -42,7 +43,26 @@ from .commands.start_cmd import run_start
 from .commands.status_cmd import run_status
 from .commands.validate_cmd import run_validate
 from .errors import ProjectPilotError, StateCorruptedError
-from .state import Clock, utc_now_iso
+from .state import Clock, project_lock, utc_now_iso
+
+
+_MUTATING_COMMANDS = frozenset(
+    {
+        "init",
+        "start",
+        "continue",
+        "validate",
+        "decision",
+        "advance",
+        "brief",
+        "advise-setup",
+        "check-ateam",
+        "execution",
+        "final-validation",
+        "done",
+        "approve",
+    }
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -394,6 +414,9 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
+        if _mutates_project(args):
+            with project_lock(Path(getattr(args, "dir", ".") or ".")):
+                return _dispatch(parser, args, clock)
         return _dispatch(parser, args, clock)
     except StateCorruptedError as exc:
         # Expected user-facing failure: a data file exists but cannot be used.
@@ -405,6 +428,12 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
     except ProjectPilotError as exc:
         print(str(exc))
         return 1
+
+
+def _mutates_project(args) -> bool:
+    if args.command in _MUTATING_COMMANDS:
+        return True
+    return args.command == "artifact" and args.artifact_command in {"add", "remove"}
 
 
 def _dispatch(parser: argparse.ArgumentParser, args, clock: Clock) -> int:
