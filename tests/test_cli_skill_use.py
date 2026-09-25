@@ -5,8 +5,10 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from projectpilot import state as state_mod
 from projectpilot.cli import main
 from projectpilot.config import config_path
+from projectpilot.state import project_lock
 
 
 def write_config(base: Path, body: str) -> None:
@@ -78,6 +80,31 @@ class UseByIdTests(SkillUseFixture):
             self.assertEqual(rc, 0)
             self.assertIn("Selected skill:", text)
             self.assertFalse((base / "projectpilot_outputs").exists())
+
+    def test_write_is_rejected_while_project_is_busy(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = self._project(d)
+            with project_lock(base):
+                rc, text = self._run(
+                    ["skill", "use", "create-prd", "--dir", str(base)]
+                )
+
+            self.assertEqual(rc, 1)
+            self.assertIn("already modifying", text)
+            self.assertFalse((base / "projectpilot_outputs").exists())
+
+    def test_write_preserves_existing_output_when_replace_fails(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = self._project(d)
+            out_path = base / "projectpilot_outputs" / "prompts" / "create-prd.md"
+            out_path.parent.mkdir(parents=True)
+            out_path.write_text("keep\n", encoding="utf-8")
+
+            with mock.patch.object(state_mod.os, "replace", side_effect=OSError("boom")):
+                with self.assertRaises(OSError):
+                    self._run(["skill", "use", "create-prd", "--dir", str(base)])
+
+            self.assertEqual(out_path.read_text(encoding="utf-8"), "keep\n")
 
     def test_custom_output_path(self):
         with tempfile.TemporaryDirectory() as d:

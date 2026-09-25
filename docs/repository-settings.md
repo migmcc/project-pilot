@@ -13,6 +13,8 @@ successfully at least once.
   - `Tests (Python 3.12)`
   - `Tests (Python 3.13)`
   - `Tests (Python 3.14)`
+  - `Lock portability (ubuntu-latest)`
+  - `Lock portability (windows-latest)`
   - `Quality gates`
   - `Build and installed-package smoke test`
   - `Secret scan`

@@ -433,7 +433,11 @@ def main(argv: Sequence[str] | None = None, *, clock: Clock = utc_now_iso) -> in
 def _mutates_project(args) -> bool:
     if args.command in _MUTATING_COMMANDS:
         return True
-    return args.command == "artifact" and args.artifact_command in {"add", "remove"}
+    if args.command == "artifact":
+        return args.artifact_command in {"add", "remove"}
+    if args.command == "skill" and args.skill_command in {"run", "use"}:
+        return not args.print
+    return False
 
 
 def _dispatch(parser: argparse.ArgumentParser, args, clock: Clock) -> int:

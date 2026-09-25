@@ -168,8 +168,8 @@ pp next                                                             # what shoul
 pp dashboard                                                        # the whole picture, at a glance
 ```
 
-`pp init` creates a small `.project-pilot/status.json` in the current directory; nothing else on your
-machine is touched.
+`pp init` creates `.project-pilot/status.json` and a small `.project-pilot/.lock` coordination file
+in the current directory; nothing outside the project is touched.
 
 ## End-to-end example
 

@@ -7,6 +7,8 @@ of a raw traceback, and state writes must be atomic (temp file + ``os.replace``)
 import contextlib
 import io
 import json
+import subprocess
+import sys
 import tempfile
 import threading
 import unittest
@@ -16,7 +18,7 @@ from unittest import mock
 
 from projectpilot import state as state_mod
 from projectpilot.cli import main
-from projectpilot.errors import ProjectPilotError, StateCorruptedError
+from projectpilot.errors import ProjectBusyError, ProjectPilotError, StateCorruptedError
 from projectpilot.state import atomic_write_text, load_state, project_lock, state_dir, state_path
 
 FROZEN = "2026-07-02T10:00:00Z"
@@ -300,6 +302,20 @@ class AtomicWriteTests(unittest.TestCase):
 
 
 class ProjectLockTests(unittest.TestCase):
+    def test_lock_io_failure_is_not_reported_as_contention(self):
+        with tempfile.TemporaryDirectory() as d:
+            with mock.patch.object(Path, "open", side_effect=OSError("disk failure")):
+                try:
+                    with project_lock(Path(d)):
+                        self.fail("lock unexpectedly acquired")
+                except BaseException as exc:
+                    caught = exc
+
+            self.assertIsInstance(caught, ProjectPilotError)
+            self.assertNotIsInstance(caught, ProjectBusyError)
+            self.assertIn("Could not acquire", str(caught))
+            self.assertIn("disk failure", str(caught))
+
     def test_second_project_lock_is_rejected(self):
         """Only one read-modify-write operation may own a project at a time."""
         with tempfile.TemporaryDirectory() as d:
@@ -317,6 +333,38 @@ class ProjectLockTests(unittest.TestCase):
             self.assertEqual(rc, 1)
             self.assertIn("already modifying", out)
             self.assertFalse(state_path(Path(d)).exists())
+
+    def test_lock_rejects_a_second_process(self):
+        """The lock must coordinate independent processes, not only contexts."""
+        script = (
+            "import sys\n"
+            "from pathlib import Path\n"
+            "from projectpilot.state import project_lock\n"
+            "with project_lock(Path(sys.argv[1])):\n"
+            "    print('locked', flush=True)\n"
+            "    sys.stdin.readline()\n"
+        )
+        with tempfile.TemporaryDirectory() as d:
+            process = subprocess.Popen(
+                [sys.executable, "-u", "-c", script, d],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            try:
+                self.assertIsNotNone(process.stdout)
+                self.assertEqual(process.stdout.readline().strip(), "locked")
+                rc, out = _run(["init", "an idea", "--dir", d])
+                self.assertEqual(rc, 1)
+                self.assertIn("already modifying", out)
+            finally:
+                if process.poll() is None:
+                    self.assertIsNotNone(process.stdin)
+                    process.stdin.write("\n")
+                    process.stdin.flush()
+                _, stderr = process.communicate(timeout=5)
+                self.assertEqual(process.returncode, 0, stderr)
 
 
 class ValidStateUnchangedTests(unittest.TestCase):

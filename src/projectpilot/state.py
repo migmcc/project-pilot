@@ -6,6 +6,7 @@ tests can freeze time for reproducible output.
 """
 from __future__ import annotations
 
+import errno
 import json
 import os
 import tempfile
@@ -16,7 +17,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from .errors import ProjectBusyError, StateCorruptedError, StateNotFoundError, UnknownPhaseError
+from .errors import (
+    ProjectBusyError,
+    ProjectPilotError,
+    StateCorruptedError,
+    StateNotFoundError,
+    UnknownPhaseError,
+)
 from .phases import Phase, phase_from_str
 
 __all__ = [
@@ -82,7 +89,11 @@ def project_lock(base: Path):
     directory = state_dir(base)
     directory.mkdir(parents=True, exist_ok=True)
     lock_path = directory / LOCK_FILENAME
-    handle = lock_path.open("a+b")
+    target = Path(base).resolve()
+    try:
+        handle = lock_path.open("a+b")
+    except OSError as exc:
+        raise ProjectPilotError(f"Could not acquire a lock for {target}: {exc}") from exc
 
     try:
         if os.name == "nt":
@@ -100,10 +111,12 @@ def project_lock(base: Path):
             fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError as exc:
         handle.close()
-        raise ProjectBusyError(
-            f"Another ProjectPilot command is already modifying {Path(base).resolve()}. "
-            "Wait for it to finish, then retry."
-        ) from exc
+        if _is_lock_contention(exc):
+            raise ProjectBusyError(
+                f"Another ProjectPilot command is already modifying {target}. "
+                "Wait for it to finish, then retry."
+            ) from exc
+        raise ProjectPilotError(f"Could not acquire a lock for {target}: {exc}") from exc
 
     try:
         yield
@@ -116,6 +129,14 @@ def project_lock(base: Path):
                 fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
         finally:
             handle.close()
+
+
+def _is_lock_contention(exc: OSError) -> bool:
+    return (
+        isinstance(exc, BlockingIOError)
+        or exc.errno in {errno.EACCES, errno.EAGAIN}
+        or getattr(exc, "winerror", None) in {32, 33}
+    )
 
 
 @dataclass

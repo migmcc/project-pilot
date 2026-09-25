@@ -14,6 +14,7 @@ This substantially limits the runtime attack surface, but responsible disclosure
 
 | Version | Supported |
 | --- | --- |
+| `1.1.0.dev0` | ✅ (development branch) |
 | `1.0.x` | ✅ |
 | `< 1.0` (including `1.0.0-rc.x`) | ❌ |
 

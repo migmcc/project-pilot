@@ -26,7 +26,7 @@ from .. import skills
 from ..config import EXTERNAL_SKILL_PATHS_KEY, config_path
 from ..errors import StateNotFoundError
 from ..phases import phase_label
-from ..state import load_state
+from ..state import atomic_write_text, load_state
 
 #: Where ``pp skill run`` writes rendered skills by default.
 OUTPUT_SUBDIR = Path("projectpilot_outputs") / "skills"
@@ -129,7 +129,7 @@ def run_skill_run(args) -> int:
     out_dir = base / OUTPUT_SUBDIR
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{skill.skill_id}.md"
-    out_path.write_text(rendered, encoding="utf-8")
+    atomic_write_text(out_path, rendered)
 
     print(f"Prepared skill '{skill.skill_id}' as reusable context (no LLM called).")
     print(f"Wrote {out_path}")
@@ -289,7 +289,7 @@ def run_skill_use(args) -> int:
     else:
         out_path = base / prompt_builder.OUTPUT_SUBDIR / f"{skill.skill_id}.md"
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(document, encoding="utf-8")
+    atomic_write_text(out_path, document)
 
     print(f"Prepared a prompt for skill '{skill.skill_id}' (no LLM called, nothing executed).")
     print(f"Wrote {out_path}")

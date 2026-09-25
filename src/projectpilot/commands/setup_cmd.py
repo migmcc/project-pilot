@@ -16,7 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .. import ateam
-from ..state import Clock
+from ..state import Clock, project_lock
 
 
 def run_setup_ateam(args, *, clock: Clock) -> int:
@@ -111,7 +111,8 @@ def _run_apply(home: Path, clock: Clock, candidates) -> int:
 
     source = sources[0]
     stamp = ateam.compact_stamp(clock())
-    result = ateam.apply_ateam(source, home, stamp=stamp)
+    with project_lock(ateam.claude_home(home)):
+        result = ateam.apply_ateam(source, home, stamp=stamp)
 
     lines = ["pp setup ateam --apply", ""]
     lines.append(f"Source: {result.source}")
