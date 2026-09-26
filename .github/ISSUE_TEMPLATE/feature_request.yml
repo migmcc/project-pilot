@@ -1,0 +1,26 @@
+name: Feature request
+description: Propose a focused change that respects the ProjectPilot charter.
+title: "proposal: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What workflow problem cannot be solved cleanly today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the smallest deterministic, orchestration-only solution.
+    validations:
+      required: true
+  - type: checkboxes
+    id: charter
+    attributes:
+      label: Charter check
+      options:
+        - label: This proposal adds no runtime network, subprocess, GitHub API, LLM, or self-approval behavior.
+          required: true

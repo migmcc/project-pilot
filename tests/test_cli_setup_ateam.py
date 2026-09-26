@@ -4,7 +4,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from projectpilot import ateam
 from projectpilot.cli import main
+from projectpilot.state import project_lock
 
 FROZEN = "2026-06-26T10:00:00Z"
 STAMP = "20260626-100000"
@@ -95,7 +97,19 @@ class ApplyTests(unittest.TestCase):
             self.assertTrue((claude / "skills" / "skill-a" / "SKILL.md").is_file())
             self.assertTrue((claude / "agents" / "agent-a.md").is_file())
             self.assertTrue((claude / "commands" / "cmd-a.md").is_file())
+            self.assertIn("- .claude\n", text)
             self.assertIn("copied", text)
+
+    def test_apply_is_rejected_while_target_is_busy(self):
+        with tempfile.TemporaryDirectory() as home:
+            home_path = Path(home)
+            _make_source(home_path)
+            with project_lock(ateam.claude_home(home_path)):
+                rc, text = _run(["setup", "ateam", "--apply", "--home", home])
+
+            self.assertEqual(rc, 1)
+            self.assertIn("already modifying", text)
+            self.assertFalse((home_path / ".claude" / "skills").exists())
 
     def test_apply_copies_settings_when_target_absent(self):
         with tempfile.TemporaryDirectory() as home:

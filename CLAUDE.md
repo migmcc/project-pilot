@@ -14,13 +14,17 @@ Python 3.12+ · zero runtime dependencies · `unittest` only (no pytest) · neve
 ## Commands
 
 ```bash
-python -m projectpilot --help                          # run from source (no install needed)
+python -m pip install -e ".[dev]"                     # first setup / metadata changes
+pp --help                                             # installed CLI smoke test
 python -m unittest discover -s tests -t .              # full suite
 python -m unittest tests.test_no_automation            # no-automation guard
+python -m ruff check src tests                         # lint gate
+python -m coverage run -m unittest discover -s tests -t .
+python -m coverage report                              # >=90% branch coverage
 ```
 
-On this machine: `.venv\Scripts\python.exe` is Python 3.12 (matches one CI leg); system `python` is
-3.13 (matches the other). Validate on the venv at minimum; both when practical.
+Use any supported local interpreter for the fast loop. CI is the portability authority and covers
+Python 3.12, 3.13, and 3.14; reproduce a version-specific failure on that interpreter when practical.
 
 ## Charter (non-negotiable)
 
@@ -35,7 +39,8 @@ On this machine: `.venv\Scripts\python.exe` is Python 3.12 (matches one CI leg);
 
 ## Validation protocol (before claiming anything is done)
 
-1. Run the full suite and the guard (commands above) and read the output — both must be green.
+1. Run the full suite, guard, lint, and coverage commands above and read the output — all must be
+   green.
 2. `git status --short` must match exactly the files the task intended to touch.
 3. Report the actual commands run and their results. Never claim success without running them.
 
@@ -54,8 +59,10 @@ On this machine: `.venv\Scripts\python.exe` is Python 3.12 (matches one CI leg);
 
 ## Implementation contracts
 
-- `status.json` / `artifacts.json` are written only via `state.atomic_write_text` (same-directory
-  temp + `os.replace`). Corrupted/hand-edited data files raise `StateCorruptedError`
+- `status.json` / `artifacts.json` are written only via `state.atomic_write_text` (unique
+  same-directory temp + `os.replace`). Mutating CLI commands hold `state.project_lock`, so
+  overlapping read-modify-write operations fail clearly instead of losing updates.
+  Corrupted/hand-edited data files raise `StateCorruptedError`
   (path + reason + recovery hint), converted to a clean exit-1 message by the boundary in
   `cli.py:main`. Unexpected programmer errors must still traceback — never swallow them.
 - `phase_requirements.evaluate` is the single source of truth for phase completeness; the advisor,
@@ -76,6 +83,8 @@ On this machine: `.venv\Scripts\python.exe` is Python 3.12 (matches one CI leg);
 
 - Version lives in **two places** and must match: `pyproject.toml` and
   `src/projectpilot/__init__.py`.
+- Development commits after a release use the next semantic version with a `.dev0` suffix; release
+  tags use the final version without the suffix.
 - `Private :: Do Not Upload` stays in `pyproject.toml` until Miguel explicitly decides otherwise.
 - Tags are annotated (`git tag -a vX.Y.Z -m "..."`), created and pushed only on explicit request.
   No GitHub Releases — the tag alone is the release.

@@ -16,7 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .. import ateam
-from ..state import Clock
+from ..state import Clock, project_lock
 
 
 def run_setup_ateam(args, *, clock: Clock) -> int:
@@ -111,7 +111,12 @@ def _run_apply(home: Path, clock: Clock, candidates) -> int:
 
     source = sources[0]
     stamp = ateam.compact_stamp(clock())
-    result = ateam.apply_ateam(source, home, stamp=stamp)
+    target = ateam.claude_home(home)
+    target_existed = target.exists()
+    with project_lock(target):
+        result = ateam.apply_ateam(source, home, stamp=stamp)
+    if not target_existed and ".claude" not in result.created_dirs:
+        result.created_dirs.insert(0, ".claude")
 
     lines = ["pp setup ateam --apply", ""]
     lines.append(f"Source: {result.source}")

@@ -3,9 +3,12 @@ import io
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
+from projectpilot import state as state_mod
 from projectpilot.cli import main
 from projectpilot.config import config_path
+from projectpilot.state import project_lock
 
 
 def write_config(base: Path, body: str) -> None:
@@ -119,6 +122,29 @@ class RunTests(SkillCliFixture):
             self.assertEqual(rc, 0)
             self.assertIn("# Skill: Discovery", text)
             self.assertFalse((base / "projectpilot_outputs").exists())
+
+    def test_run_write_is_rejected_while_project_is_busy(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = self._project_with_lib(d)
+            with project_lock(base):
+                rc, text = self._run(["skill", "run", "discovery", "--dir", str(base)])
+
+            self.assertEqual(rc, 1)
+            self.assertIn("already modifying", text)
+            self.assertFalse((base / "projectpilot_outputs").exists())
+
+    def test_run_write_preserves_existing_output_when_replace_fails(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = self._project_with_lib(d)
+            out_path = base / "projectpilot_outputs" / "skills" / "discovery.md"
+            out_path.parent.mkdir(parents=True)
+            out_path.write_text("keep\n", encoding="utf-8")
+
+            with mock.patch.object(state_mod.os, "replace", side_effect=OSError("boom")):
+                with self.assertRaises(OSError):
+                    self._run(["skill", "run", "discovery", "--dir", str(base)])
+
+            self.assertEqual(out_path.read_text(encoding="utf-8"), "keep\n")
 
     def test_run_missing_skill(self):
         with tempfile.TemporaryDirectory() as d:

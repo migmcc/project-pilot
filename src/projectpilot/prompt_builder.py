@@ -19,7 +19,7 @@ from pathlib import Path
 
 from . import artifact_store, graph_context, phase_requirements
 from .phases import NEXT_ACTION, Phase, phase_label
-from .state import ProjectState, state_dir
+from .state import ProjectState
 
 __all__ = [
     "OUTPUT_SUBDIR",

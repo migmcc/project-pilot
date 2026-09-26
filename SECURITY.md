@@ -3,8 +3,10 @@
 ProjectPilot is a **local, deterministic CLI**. By design it has **no runtime dependencies** and, in
 production code, performs **no process spawning, no network access, no GitHub API calls, and no LLM
 calls** — a static test (`tests/test_no_automation.py`) fails the build if `src/` ever introduces
-these. It reads and writes only within the project directory (chiefly `.project-pilot/`) and reads
-external skill libraries and registered artifacts as **metadata/text only**; it never executes them.
+these. Normal lifecycle state stays within the project directory (chiefly `.project-pilot/`). The
+explicit `pp setup ateam --apply` command is the one exception: it backs up and writes A-Team files
+under `~/.claude`. External skill text is read as prompt input; registered artifact bytes are read
+only to calculate SHA-256 metadata and are never executed, parsed, or included in prompts.
 
 This substantially limits the runtime attack surface, but responsible disclosure is still welcome.
 
@@ -12,6 +14,7 @@ This substantially limits the runtime attack surface, but responsible disclosure
 
 | Version | Supported |
 | --- | --- |
+| `1.1.0.dev0` | ✅ (development branch) |
 | `1.0.x` | ✅ |
 | `< 1.0` (including `1.0.0-rc.x`) | ❌ |
 

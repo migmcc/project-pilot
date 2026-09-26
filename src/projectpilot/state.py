@@ -6,14 +6,24 @@ tests can freeze time for reproducible output.
 """
 from __future__ import annotations
 
+import errno
 import json
 import os
+import tempfile
+import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from .errors import StateCorruptedError, StateNotFoundError, UnknownPhaseError
+from .errors import (
+    ProjectBusyError,
+    ProjectPilotError,
+    StateCorruptedError,
+    StateNotFoundError,
+    UnknownPhaseError,
+)
 from .phases import Phase, phase_from_str
 
 __all__ = [
@@ -27,6 +37,7 @@ __all__ = [
     "state_exists",
     "ProjectState",
     "atomic_write_text",
+    "project_lock",
     "save_state",
     "load_state",
 ]
@@ -43,6 +54,7 @@ SCHEMA_VERSION = 1
 
 STATE_DIRNAME = ".project-pilot"
 STATE_FILENAME = "status.json"
+LOCK_FILENAME = ".lock"
 
 #: A clock returns an ISO-8601 UTC timestamp string.
 Clock = Callable[[], str]
@@ -63,6 +75,68 @@ def state_path(base: Path) -> Path:
 
 def state_exists(base: Path) -> bool:
     return state_path(base).exists()
+
+
+@contextmanager
+def project_lock(base: Path):
+    """Reject overlapping project mutations with a cross-process file lock.
+
+    The lock is deliberately non-blocking: an agent or user gets a clear error
+    and can retry instead of waiting indefinitely behind a stalled command.
+    The small lock file remains in ``.project-pilot``; the operating system lock,
+    not file presence, determines ownership and is released on process exit.
+    """
+    directory = state_dir(base)
+    lock_path = directory / LOCK_FILENAME
+    target = Path(base).resolve()
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+        handle = lock_path.open("a+b")
+    except OSError as exc:
+        raise ProjectPilotError(f"Could not acquire a lock for {target}: {exc}") from exc
+
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            handle.seek(0, os.SEEK_END)
+            if handle.tell() == 0:
+                handle.write(b"\0")
+                handle.flush()
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError as exc:
+        handle.close()
+        if _is_lock_contention(exc):
+            raise ProjectBusyError(
+                f"Another ProjectPilot command is already modifying {target}. "
+                "Wait for it to finish, then retry."
+            ) from exc
+        raise ProjectPilotError(f"Could not acquire a lock for {target}: {exc}") from exc
+
+    try:
+        yield
+    finally:
+        try:
+            if os.name == "nt":
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        finally:
+            handle.close()
+
+
+def _is_lock_contention(exc: OSError) -> bool:
+    return (
+        isinstance(exc, BlockingIOError)
+        or exc.errno in {errno.EACCES, errno.EAGAIN}
+        or getattr(exc, "winerror", None) in {32, 33}
+    )
 
 
 @dataclass
@@ -133,18 +207,37 @@ class ProjectState:
 def atomic_write_text(path: Path, text: str) -> None:
     """Write ``text`` to ``path`` atomically.
 
-    The content lands in a temporary sibling file first and is then moved over
-    the target with :func:`os.replace`, so an interruption mid-write can never
-    leave a half-written file behind. The sibling lives in the same directory,
-    which keeps the replace on one volume (atomic on POSIX and Windows alike).
+    The content lands in a unique temporary sibling file first and is then moved
+    over the target with :func:`os.replace`, so an interruption mid-write can
+    never leave a half-written file behind. The sibling lives in the same
+    directory, which keeps the replace on one volume (atomic on POSIX and
+    Windows alike) while allowing simultaneous writers to complete independently.
     On failure the temporary file is removed and the target is left untouched.
     """
     path = Path(path)
-    tmp = path.with_name(path.name + ".tmp")
+    handle, temporary_name = tempfile.mkstemp(
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        text=True,
+    )
+    tmp = Path(temporary_name)
     try:
-        tmp.write_text(text, encoding="utf-8")
-        os.replace(tmp, path)
+        with os.fdopen(handle, "w", encoding="utf-8") as temporary:
+            temporary.write(text)
+        for attempt in range(5):
+            try:
+                os.replace(tmp, path)
+                break
+            except PermissionError:
+                if os.name != "nt" or attempt == 4:
+                    raise
+                time.sleep(0.01 * (attempt + 1))
     except BaseException:
+        try:
+            os.close(handle)
+        except OSError:
+            pass
         try:
             tmp.unlink()
         except OSError:

@@ -4,7 +4,8 @@ A local, deterministic CLI that orchestrates and **enforces** a project's lifecy
 existing tooling ecosystem. It does not execute technically and never reimplements the A-Team or
 AgentDesk — it is a process conductor with explicit approval gates.
 
-> **Status:** **v1.0.0 — first stable release.**
+> **Status:** **v1.0.0 — latest stable release.** The `main` branch identifies itself as
+> **v1.1.0.dev0** until the next release tag is cut.
 > Full lifecycle (`idea → done`), Python 3.12+, stdlib-only, zero runtime dependencies, deterministic
 > output. **Local-first:** everything runs on your machine; ProjectPilot never publishes, pushes,
 > tags, releases, or installs anything itself. Licensed under the [MIT License](LICENSE).
@@ -113,7 +114,7 @@ in the subsystems below.
 | Subsystem | Module | Responsibility | Key public API |
 | --- | --- | --- | --- |
 | Lifecycle | `phases.py` | Canonical phases, ordering, labels | `Phase`, `PHASE_ORDER`, `next_phase`, `phase_label` |
-| State | `state.py` | Load/save `.project-pilot/status.json` | `ProjectState`, `load_state`, `save_state` |
+| State | `state.py` | Load/save and mutation locking | `ProjectState`, `load_state`, `save_state`, `project_lock` |
 | Skills (scanner) | `skills.py` | Discover external skills | `scan_skills`, `find_skill`, `render_skill` |
 | Recommendations | `recommend.py` | Rank skills for a phase | `rank`, `keywords_for_phase` |
 | Prompt builder | `prompt_builder.py` | Assemble an agent-ready prompt | `collect_context`, `build_prompt` |
@@ -141,17 +142,20 @@ For a deeper dive, see the docs:
 
 ## Quick start
 
-ProjectPilot has **no runtime dependencies** — Python 3.12+ is all you need. Run it straight from the
-source tree:
+ProjectPilot has **no runtime dependencies** — Python 3.12+ is all you need. Clone it and create an
+editable local install:
 
 ```bash
-python -m projectpilot --help
+git clone https://github.com/migmcc/project-pilot.git
+cd project-pilot
+python -m pip install -e .
+pp --help
 ```
 
-Optionally expose the shorter `pp` command with an editable install (a manual developer step):
+To install the latest stable tag rather than the development branch:
 
 ```bash
-pip install -e .
+python -m pip install "projectpilot @ git+https://github.com/migmcc/project-pilot.git@v1.0.0"
 pp --help
 ```
 
@@ -164,8 +168,8 @@ pp next                                                             # what shoul
 pp dashboard                                                        # the whole picture, at a glance
 ```
 
-`pp init` creates a small `.project-pilot/status.json` in the current directory; nothing else on your
-machine is touched.
+`pp init` creates `.project-pilot/status.json` and a small `.project-pilot/.lock` coordination file
+in the current directory; nothing outside the project is touched.
 
 ## End-to-end example
 
@@ -188,7 +192,7 @@ pp skill use create-prd   # writes projectpilot_outputs/prompts/create-prd.md
 # 4. Paste that prompt into Claude Code / Codex / ChatGPT and produce docs/PRD.md yourself.
 #    (ProjectPilot did not call any model.)
 
-# 5. Register the evidence — metadata only; the file is never copied or read.
+# 5. Register the evidence — the file is hashed, but never copied, parsed, or added to prompts.
 pp artifact add docs/PRD.md
 
 # 6. Watch the project move forward.
@@ -212,7 +216,7 @@ python -m projectpilot dashboard --json              # deterministic machine-rea
 python -m projectpilot next                          # workflow advisor: suggest the next step
 python -m projectpilot next --json                   # deterministic machine-readable advice
 
-# Workflow evidence tracker (metadata only; does not copy/read content)
+# Workflow evidence tracker (hashes the file; does not copy, parse, or include its content)
 python -m projectpilot artifact add path/to/PRD.md
 python -m projectpilot artifact list
 python -m projectpilot artifact list --json
@@ -262,6 +266,8 @@ python -m projectpilot skill use                     # wizard: choose from phase
 When configured, `pp doctor` also reports optional Graphify readiness.
 
 State is stored in `.project-pilot/status.json`.
+Mutating commands coordinate through `.project-pilot/.lock`; the small file is safe to leave in
+place because the operating-system lock, not its presence, indicates an active command.
 
 ## Workflow evidence tracker (`pp artifact`)
 
@@ -733,6 +739,9 @@ degrades to `#`/`-` automatically. Like the artifact tracker, the dashboard read
     hooks/settings is deferred to a future run;
   - the **source is never modified** and **never deleted**.
 
+Concurrent installs coordinate through `~/.claude/.project-pilot/.lock`. The small file may remain
+after the command because operating-system lock ownership, not file presence, indicates activity.
+
 The real A-team install therefore stays under your explicit control: nothing reaches `~/.claude`
 without `--apply`, and nothing is ever deleted or overwritten.
 
@@ -817,12 +826,13 @@ API, or VCS/release/install automation.
 ## Continuous integration
 
 A GitHub Actions workflow (`.github/workflows/ci.yml`) runs the unit tests and the no-automation
-guard on Python 3.12 and 3.13, with no external dependencies and no pytest.
+guard on Python 3.12, 3.13, and 3.14. Separate gates enforce Ruff linting, at least 90% branch
+coverage, a clean wheel build plus installed-package smoke test, and a full-history Gitleaks scan.
 
 ## Distribution
 
 ProjectPilot is **not published to PyPI** and never will be by the tool itself. The source is the
-distribution: clone the repository and run it, or `pip install -e .` for a local `pp` entry point.
+distribution: install a release tag directly from Git, or use `pip install -e .` in a local clone.
 The `Private :: Do Not Upload` classifier in `pyproject.toml` is a deliberate guard against an
 accidental package-index upload — it says nothing about the visibility of this repository.
 

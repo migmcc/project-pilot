@@ -83,7 +83,7 @@ graph TD
 | Subsystem | Module | Responsibility | Key public API |
 | --- | --- | --- | --- |
 | Lifecycle | `phases.py` | Canonical phases, ordering, display labels | `Phase`, `PHASE_ORDER`, `next_phase`, `phase_label`, `gate_for_next` |
-| State | `state.py` | Load/save `.project-pilot/status.json` | `ProjectState`, `load_state`, `save_state`, `state_exists` |
+| State | `state.py` | Load/save plus project mutation locking | `ProjectState`, `load_state`, `save_state`, `state_exists`, `project_lock` |
 | Config | `config.py` | Read `.project-pilot/config.yaml` (YAML subset) | `load_config`, `load_mapping`, `EXTERNAL_SKILL_PATHS_KEY` |
 | Skills (scanner) | `skills.py` | Discover external skills | `scan_skills`, `find_skill`, `render_skill`, `skill_body`, `resolve_sources` |
 | Recommendations | `recommend.py` | Rank skills for a phase | `rank`, `keywords_for_phase`, `stars_string` |
@@ -110,6 +110,9 @@ graph TD
   `graph.json` or `GRAPH_REPORT.md`, and never imports, executes, or updates Graphify.
 - **Deterministic output.** Given the same recorded state, text and `--json` output are byte-identical,
   so JSON is safe to consume from other tools.
+- **Serialized mutations.** Mutating CLI commands hold a non-blocking, cross-process project lock;
+  a concurrent writer receives a clear retry message instead of losing a read-modify-write update.
+  Atomic file replacement uses a unique same-directory temporary file for each writer.
 
 See also: [workflow.md](workflow.md) for the lifecycle and per-phase commands, and
 [extending.md](extending.md) for the supported extension points.
