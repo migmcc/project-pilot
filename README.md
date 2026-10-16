@@ -1,5 +1,22 @@
 # ProjectPilot
 
+### Know exactly what your project needs next — without handing control to an AI agent.
+
+**ProjectPilot** is a local, deterministic command-line tool that tracks project lifecycle phases, required evidence and explicit human approvals. It prepares advice and prompts but **never executes agents, calls an LLM or publishes your work**.
+
+**[Try the 30-second workflow](#quick-start)** · **[See the lifecycle](#canonical-lifecycle-phases-d5)** · **[How it compares](#how-it-compares)** · **[Browse documentation](docs/workflow.md)**
+
+```bash
+pp init "a local code review assistant" --name "Review Assistant"
+pp status
+pp next
+pp dashboard
+```
+
+> **What to expect:** an explicit current phase, missing requirements and a recommended next step. ProjectPilot does not execute that step for you. Install from source with Python 3.12+; [full instructions](#quick-start).
+
+---
+
 A local, deterministic CLI that orchestrates and **enforces** a project's lifecycle across the
 existing tooling ecosystem. It does not execute technically and never reimplements the A-Team or
 AgentDesk — it is a process conductor with explicit approval gates.
